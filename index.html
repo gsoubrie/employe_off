@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Congés Équipe</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <div>
+      <h1>Congés Équipe</h1>
+      <div class="subtitle">Saisie et suivi des absences</div>
+    </div>
+    <a href="manager.html" class="btn">Vue manager →</a>
+  </div>
+
+  <!-- Banner Firebase non configuré -->
+  <div id="firebase-banner" class="firebase-banner" style="display:none">
+    <strong>Configuration Firebase requise</strong> — Ouvrez <code>js/firebase.js</code>
+    et remplacez les valeurs de <code>FIREBASE_CONFIG</code> par celles de votre projet Firebase.
+    (<a href="https://console.firebase.google.com" target="_blank" style="color:inherit">console.firebase.google.com</a>)
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('saisie')">Saisie</button>
+    <button class="tab" onclick="switchTab('calendrier')">Calendrier</button>
+    <button class="tab" onclick="switchTab('liste')">Tous les congés</button>
+  </div>
+
+  <!-- ═══════════════ SAISIE ═══════════════ -->
+  <div id="tab-saisie" class="section active">
+    <div class="card">
+      <div class="field">
+        <label>Employé *</label>
+        <select id="f-employee"></select>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Date de début *</label>
+          <input type="date" id="f-debut" />
+        </div>
+        <div class="field">
+          <label>Date de fin *</label>
+          <input type="date" id="f-fin" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Type de congé *</label>
+        <select id="f-type"></select>
+      </div>
+      <div class="field">
+        <label>Note (optionnelle)</label>
+        <textarea id="f-note" rows="2" placeholder="Informations complémentaires..."></textarea>
+      </div>
+      <div id="preview-manager" style="display:none;margin-top:.5rem;padding:.75rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="handleSubmit()">Soumettre la demande</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CALENDRIER ═══════════════ -->
+  <div id="tab-calendrier" class="section">
+    <div class="card card-sm">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button class="btn" onclick="cal.prevMonth()">‹</button>
+          <button class="btn" onclick="cal.nextMonth()">›</button>
+        </div>
+        <div class="cal-title" id="cal-title"></div>
+        <button class="btn" onclick="cal.goToday()">Aujourd'hui</button>
+      </div>
+      <div id="cal-legend" class="cal-legend"></div>
+      <div class="cal-grid" id="cal-grid">
+        <div class="cal-day-name">Lun</div>
+        <div class="cal-day-name">Mar</div>
+        <div class="cal-day-name">Mer</div>
+        <div class="cal-day-name">Jeu</div>
+        <div class="cal-day-name">Ven</div>
+        <div class="cal-day-name">Sam</div>
+        <div class="cal-day-name">Dim</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center">
+      Seuls les congés approuvés apparaissent sur le calendrier.
+    </p>
+  </div>
+
+  <!-- ═══════════════ LISTE ═══════════════ -->
+  <div id="tab-liste" class="section">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+      <select id="filter-status" class="btn" style="width:auto" onchange="applyFilters()">
+        <option value="">Tous les statuts</option>
+        <option value="pending">En attente</option>
+        <option value="approved">Approuvés</option>
+        <option value="rejected">Refusés</option>
+      </select>
+      <select id="filter-employee" class="btn" style="width:auto" onchange="applyFilters()">
+        <option value="">Tous les employés</option>
+      </select>
+    </div>
+    <div class="card">
+      <div id="leaves-list">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Config & composants -->
+<script src="config/employees.js"></script>
+<script src="config/leaveTypes.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/users.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/leaves.js"></script>
+
+<script>
+// ── Init ──────────────────────────────────────────────────────
+let allLeaves = [];
+let cal;
+
+document.addEventListener("DOMContentLoaded", () => {
+  initFirebase();
+  checkFirebaseBanner();
+  populateEmployeeSelect("f-employee");
+  populateEmployeeSelect("filter-employee", "Tous les employés");
+  populateLeaveTypeSelect("f-type");
+
+  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
+
+  // Écoute temps réel
+  if (isFirebaseConfigured()) {
+    listenLeaves([], (leaves) => {
+      allLeaves = leaves;
+      cal.setLeaves(leaves);
+      applyFilters();
+      renderStats();
+    });
+  }
+
+  // Aperçu manager au changement d'employé
+  document.getElementById("f-employee").addEventListener("change", updateManagerPreview);
+});
+
+function switchTab(t) {
+  document.querySelectorAll(".tab").forEach((el, i) => {
+    el.classList.toggle("active", ["saisie","calendrier","liste"][i] === t);
+  });
+  document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
+  document.getElementById("tab-" + t).classList.add("active");
+  if (t === "calendrier") cal.render();
+}
+
+// ── Aperçu manager ────────────────────────────────────────────
+function updateManagerPreview() {
+  const empId = document.getElementById("f-employee").value;
+  const box = document.getElementById("preview-manager");
+  if (!empId) { box.style.display = "none"; return; }
+  const manager = getManagerForEmployee(empId);
+  if (manager) {
+    box.style.display = "block";
+    box.innerHTML = `Un mail sera envoyé à <strong>${fullName(manager)}</strong> (${manager.email}) pour validation.`;
+  } else {
+    box.style.display = "none";
+  }
+}
+
+// ── Soumission ────────────────────────────────────────────────
+async function handleSubmit() {
+  const btn = document.querySelector('[onclick="handleSubmit()"]');
+  btn.disabled = true;
+  btn.textContent = "Envoi...";
+
+  try {
+    await submitLeave({
+      employeeId: document.getElementById("f-employee").value,
+      debut:      document.getElementById("f-debut").value,
+      fin:        document.getElementById("f-fin").value,
+      typeId:     document.getElementById("f-type").value,
+      note:       document.getElementById("f-note").value,
+    });
+    showToast("Demande soumise — le mail part vers le manager !");
+    ["f-employee","f-debut","f-fin","f-note"].forEach((id) => document.getElementById(id).value = "");
+    document.getElementById("preview-manager").style.display = "none";
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Soumettre la demande";
+  }
+}
+
+// ── Filtres & liste ───────────────────────────────────────────
+function applyFilters() {
+  const statusF  = document.getElementById("filter-status").value;
+  const employeeF = document.getElementById("filter-employee").value;
+
+  let filtered = [...allLeaves];
+  if (statusF)   filtered = filtered.filter((l) => l.status === statusF);
+  if (employeeF) filtered = filtered.filter((l) => l.employeeId === employeeF);
+  filtered.sort((a,b) => b.debut.localeCompare(a.debut));
+
+  const el = document.getElementById("leaves-list");
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty">Aucun congé trouvé</div>';
+    return;
+  }
+  el.innerHTML = filtered.map((l) =>
+    renderLeaveItem(l, { onDelete: "handleDelete" })
+  ).join("");
+}
+
+async function handleDelete(id) {
+  if (!confirm("Supprimer ce congé ?")) return;
+  try {
+    await fsDelete("conges", id);
+    showToast("Congé supprimé");
+  } catch (e) {
+    showToast("Erreur lors de la suppression", "error");
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function renderStats() {
+  const s = computeStats(allLeaves);
+  document.getElementById("stats-grid").innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${s.total}</div></div>
+    <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--amber)">${s.pending}</div></div>
+    <div class="stat-card"><div class="stat-label">Approuvés</div><div class="stat-value" style="color:var(--green)">${s.approved}</div></div>
+    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>
+  `;
+}
+</script>
+</body>
+</html>
