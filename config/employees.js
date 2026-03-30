@@ -6,70 +6,20 @@
 
 const MANAGERS = [
   {
-    id: "mgr1",
-    prenom: "Sophie",
-    nom: "Martin",
-    email: "sophie.martin@entreprise.fr",
-  },
-  {
-    id: "mgr2",
-    prenom: "Thomas",
-    nom: "Bernard",
-    email: "thomas.bernard@entreprise.fr",
-  },
+    id: "GSOU",
+    prenom: "Grégoire",
+    nom: "Soubrié",
+    email: "g.soubrie@shinken-solutions.com",
+  }
 ];
 
 const EMPLOYEES = [
-  // --- Équipe Sophie Martin ---
   {
-    id: "emp1",
-    prenom: "Alice",
-    nom: "Dupont",
-    email: "alice.dupont@entreprise.fr",
-    managerId: "mgr1",
-  },
-  {
-    id: "emp2",
-    prenom: "Marc",
-    nom: "Leblanc",
-    email: "marc.leblanc@entreprise.fr",
-    managerId: "mgr1",
-  },
-  {
-    id: "emp3",
-    prenom: "Julie",
-    nom: "Rousseau",
-    email: "julie.rousseau@entreprise.fr",
-    managerId: "mgr1",
-  },
-  {
-    id: "emp4",
-    prenom: "Kevin",
-    nom: "Moreau",
-    email: "kevin.moreau@entreprise.fr",
-    managerId: "mgr1",
-  },
-  // --- Équipe Thomas Bernard ---
-  {
-    id: "emp5",
-    prenom: "Laura",
-    nom: "Petit",
-    email: "laura.petit@entreprise.fr",
-    managerId: "mgr2",
-  },
-  {
-    id: "emp6",
-    prenom: "Nicolas",
-    nom: "Simon",
-    email: "nicolas.simon@entreprise.fr",
-    managerId: "mgr2",
-  },
-  {
-    id: "emp7",
-    prenom: "Emma",
-    nom: "Laurent",
-    email: "emma.laurent@entreprise.fr",
-    managerId: "mgr2",
+    id: "GSOU_2",
+    prenom: "Grégoire",
+    nom: "Soubrié",
+    email: "g.soubrie@shinken-solutions.com",
+    managerId: "GSOU",
   },
 ];
 
