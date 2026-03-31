@@ -7,12 +7,12 @@
 // ============================================================
 
 const FIREBASE_CONFIG = {
-  apiKey:            "VOTRE_API_KEY",
-  authDomain:        "VOTRE_PROJECT.firebaseapp.com",
-  projectId:         "VOTRE_PROJECT_ID",
-  storageBucket:     "VOTRE_PROJECT.appspot.com",
-  messagingSenderId: "VOTRE_SENDER_ID",
-  appId:             "VOTRE_APP_ID",
+  apiKey:            "AIzaSyDc2J2AL8uF5SQJCCxcItMVtEOW_3Wnyyo",
+  authDomain:        "employe-off.firebaseapp.com",
+  projectId:         "employe-off",
+  storageBucket:     "employe-off.firebasestorage.app",
+  messagingSenderId: "56209789558",
+  appId:             "1:56209789558:web:435d3de2417f113dae0557"
 };
 
 // ── Init ──────────────────────────────────────────────────────
