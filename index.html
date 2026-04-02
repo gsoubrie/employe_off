@@ -40,13 +40,34 @@
       <div class="row-2">
         <div class="field">
           <label>Date de début *</label>
-          <input type="date" id="f-debut" />
+          <input type="date" id="f-debut" oninput="updateDayPreview()" />
         </div>
         <div class="field">
-          <label>Date de fin *</label>
-          <input type="date" id="f-fin" />
+          <label>Période début</label>
+          <select id="f-periode-debut" onchange="updateDayPreview()">
+            <option value="Journée">Journée</option>
+            <option value="Matin">Matin</option>
+            <option value="Midi">Midi</option>
+            <option value="Soir">Soir</option>
+          </select>
         </div>
       </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Date de fin *</label>
+          <input type="date" id="f-fin" oninput="updateDayPreview()" />
+        </div>
+        <div class="field">
+          <label>Période fin</label>
+          <select id="f-periode-fin" onchange="updateDayPreview()">
+            <option value="Journée">Journée</option>
+            <option value="Matin">Matin</option>
+            <option value="Midi">Midi</option>
+            <option value="Soir">Soir</option>
+          </select>
+        </div>
+      </div>
+      <div id="preview-days" style="display:none;margin-bottom:.75rem;padding:.6rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
       <div class="field">
         <label>Type de congé *</label>
         <select id="f-type"></select>
@@ -163,6 +184,20 @@ function switchTab(t) {
   if (t === "calendrier") cal.render();
 }
 
+// ── Aperçu jours calculés ────────────────────────────────────
+function updateDayPreview() {
+  const debut = document.getElementById("f-debut").value;
+  const fin   = document.getElementById("f-fin").value;
+  const pd    = document.getElementById("f-periode-debut").value;
+  const pf    = document.getElementById("f-periode-fin").value;
+  const box   = document.getElementById("preview-days");
+  if (!debut || !fin) { box.style.display = "none"; return; }
+  if (debut > fin)    { box.style.display = "none"; return; }
+  const nb = calculateDays(debut, fin, pd, pf);
+  box.style.display = "block";
+  box.innerHTML = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
+}
+
 // ── Aperçu manager ────────────────────────────────────────────
 function updateManagerPreview() {
   const empId = document.getElementById("f-employee").value;
@@ -185,14 +220,19 @@ async function handleSubmit() {
 
   try {
     await submitLeave({
-      employeeId: document.getElementById("f-employee").value,
-      debut:      document.getElementById("f-debut").value,
-      fin:        document.getElementById("f-fin").value,
-      typeId:     document.getElementById("f-type").value,
-      note:       document.getElementById("f-note").value,
+      employeeId:   document.getElementById("f-employee").value,
+      debut:        document.getElementById("f-debut").value,
+      fin:          document.getElementById("f-fin").value,
+      periodeDebut: document.getElementById("f-periode-debut").value,
+      periodeFin:   document.getElementById("f-periode-fin").value,
+      typeId:       document.getElementById("f-type").value,
+      note:         document.getElementById("f-note").value,
     });
     showToast("Demande soumise — le mail part vers le manager !");
     ["f-employee","f-debut","f-fin","f-note"].forEach((id) => document.getElementById(id).value = "");
+    document.getElementById("f-periode-debut").value = "Journée";
+    document.getElementById("f-periode-fin").value = "Journée";
+    document.getElementById("preview-days").style.display = "none";
     document.getElementById("preview-manager").style.display = "none";
   } catch (err) {
     showToast(err.message, "error");

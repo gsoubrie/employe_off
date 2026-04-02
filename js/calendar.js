@@ -1,6 +1,6 @@
 // ============================================================
 //  COMPOSANT CALENDRIER (calendar.js)
-//  Rendu du calendrier mensuel avec affichage des congés
+//  Rendu du calendrier mensuel avec barres de couleur continues
 // ============================================================
 
 class LeaveCalendar {
@@ -10,13 +10,10 @@ class LeaveCalendar {
     this.legendId = legendId;
     this.current  = new Date();
     this.leaves   = [];
-
-    // Conserver les en-têtes de jours
     this._dayHeaders = null;
   }
 
   setLeaves(leaves) {
-    // On n'affiche que les congés approuvés sur le calendrier
     this.leaves = leaves.filter((l) => l.status === "approved");
     this.render();
   }
@@ -42,7 +39,6 @@ class LeaveCalendar {
     const grid = document.getElementById(this.gridId);
     if (!grid) return;
 
-    // Sauvegarder les en-têtes si pas encore fait
     if (!this._dayHeaders) {
       this._dayHeaders = Array.from(grid.querySelectorAll(".cal-day-name"))
         .map((el) => el.cloneNode(true));
@@ -52,33 +48,79 @@ class LeaveCalendar {
 
     // Calculs
     let startDow = new Date(year, month, 1).getDay();
-    startDow = startDow === 0 ? 6 : startDow - 1; // lundi = 0
+    startDow = startDow === 0 ? 6 : startDow - 1;
 
     const daysInMonth   = new Date(year, month + 1, 0).getDate();
     const prevMonthDays = new Date(year, month, 0).getDate();
     const totalCells    = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
+    // Palette de couleurs par employé (stable via hash)
+    const PALETTE = [
+      { bg: "#DBEAFE", bar: "#3B82F6", text: "#1E3A8A" },
+      { bg: "#D1FAE5", bar: "#10B981", text: "#064E3B" },
+      { bg: "#FEF3C7", bar: "#F59E0B", text: "#78350F" },
+      { bg: "#FCE7F3", bar: "#EC4899", text: "#831843" },
+      { bg: "#EDE9FE", bar: "#8B5CF6", text: "#4C1D95" },
+      { bg: "#FFEDD5", bar: "#F97316", text: "#7C2D12" },
+      { bg: "#CFFAFE", bar: "#06B6D4", text: "#164E63" },
+      { bg: "#F0FDF4", bar: "#22C55E", text: "#14532D" },
+      { bg: "#FEE2E2", bar: "#EF4444", text: "#7F1D1D" },
+      { bg: "#F5F3FF", bar: "#7C3AED", text: "#2E1065" },
+      { bg: "#FDF2F8", bar: "#D946EF", text: "#701A75" },
+      { bg: "#ECFDF5", bar: "#059669", text: "#022C22" },
+    ];
+
+    function employeeColor(name) {
+      let h = 0;
+      for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+      return PALETTE[h % PALETTE.length];
+    }
+
     // Légende des personnes présentes ce mois
-    const names = new Set();
-    this.leaves.forEach((l) => {
-      const mStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-      const mEnd   = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-      if (l.debut <= mEnd && l.fin >= mStart) names.add(l.employeeName);
-    });
+    const mStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const mEnd   = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+    const presentLeaves = this.leaves.filter((l) => l.debut <= mEnd && l.fin >= mStart);
+    const namesSet = new Set(presentLeaves.map((l) => l.employeeName));
 
     const legendEl = document.getElementById(this.legendId);
     if (legendEl) {
-      legendEl.innerHTML = [...names].map((name) => {
-        const emp = EMPLOYEES.find((e) => fullName(e) === name);
-        const col = emp ? avatarColor(name) : { bg: "#ddd", text: "#555" };
+      legendEl.innerHTML = [...namesSet].map((name) => {
+        const col = employeeColor(name);
         return `<div class="cal-legend-item">
-          <div class="cal-legend-dot" style="background:${col.text}"></div>
+          <div class="cal-legend-dot" style="background:${col.bar}"></div>
           <span>${name}</span>
         </div>`;
       }).join("");
     }
 
+    // Attribution d'une ligne par congé pour éviter les chevauchements
+    // On calcule les "tracks" (lignes) pour l'affichage des barres
+    function assignTracks(leaves) {
+      const sorted = [...leaves].sort((a, b) => a.debut.localeCompare(b.debut));
+      const tracks = []; // chaque track = tableau de congés non chevauchants
+      sorted.forEach((leave) => {
+        let placed = false;
+        for (const track of tracks) {
+          const last = track[track.length - 1];
+          if (last.fin < leave.debut) {
+            track.push(leave);
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) tracks.push([leave]);
+      });
+      // Retourne un Map leaveId -> trackIndex
+      const map = new Map();
+      tracks.forEach((track, i) => track.forEach((l) => map.set(l.id, i)));
+      return map;
+    }
+
+    const trackMap = assignTracks(this.leaves.filter((l) => l.debut <= mEnd && l.fin >= mStart));
+
     // Cellules
+    const cells = [];
     for (let i = 0; i < totalCells; i++) {
       const cell = document.createElement("div");
       cell.className = "cal-cell";
@@ -102,29 +144,88 @@ class LeaveCalendar {
 
       const dateStr = `${y2}-${String(m2 + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       cell.innerHTML = `<div class="cal-num">${d}</div>`;
+      cell.dataset.date = dateStr;
 
-      // Congés du jour
-      const onDay = this.leaves.filter((l) => dateStr >= l.debut && dateStr <= l.fin);
-      onDay.slice(0, 2).forEach((l) => {
-        const emp = EMPLOYEES.find((e) => fullName(e) === l.employeeName);
-        const col = emp ? avatarColor(l.employeeName) : { bg: "#eee", text: "#555" };
-        const b = document.createElement("div");
-        b.className = "cal-badge";
-        b.style.cssText = `background:${col.bg};color:${col.text}`;
-        b.title = `${l.employeeName} – ${l.typeLabel}`;
-        b.textContent = l.employeeName.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
-        cell.appendChild(b);
-      });
-
-      if (onDay.length > 2) {
-        const more = document.createElement("div");
-        more.className = "cal-badge";
-        more.style.cssText = "background:var(--bg2);color:var(--text2)";
-        more.textContent = `+${onDay.length - 2}`;
-        cell.appendChild(more);
-      }
-
+      cells.push({ cell, dateStr, colIndex: i % 7 });
       grid.appendChild(cell);
     }
+
+    // Rendu des barres de congé
+    // Pour chaque congé, on dessine une barre qui s'étend sur les cellules concernées
+    // En coupant les lignes à chaque début de semaine
+    this.leaves.filter((l) => l.debut <= mEnd && l.fin >= mStart).forEach((leave) => {
+      const col   = employeeColor(leave.employeeName);
+      const track = trackMap.get(leave.id) ?? 0;
+      const prénom = leave.employeeName.split(" ")[0];
+
+      // Trouver les cellules concernées dans le mois affiché
+      const concerned = cells.filter((c) => c.dateStr >= leave.debut && c.dateStr <= leave.fin && !c.cell.classList.contains("other-month"));
+      if (!concerned.length) return;
+
+      // Grouper par semaine (ligne dans la grille)
+      const byWeek = new Map();
+      concerned.forEach((c) => {
+        const weekIdx = Math.floor(cells.indexOf(c) / 7);
+        if (!byWeek.has(weekIdx)) byWeek.set(weekIdx, []);
+        byWeek.get(weekIdx).push(c);
+      });
+
+      byWeek.forEach((weekCells) => {
+        const first = weekCells[0];
+        const last  = weekCells[weekCells.length - 1];
+        const isStart = first.dateStr === leave.debut;
+        const isEnd   = last.dateStr  === leave.fin;
+
+        // Barre positionnée en CSS dans la première cellule de la semaine pour ce congé
+        const bar = document.createElement("div");
+        bar.className = "cal-leave-bar";
+        bar.title = `${leave.employeeName} – ${leave.typeLabel}`;
+
+        // Hauteur & position verticale selon le track
+        const BAR_HEIGHT = 18;
+        const BAR_GAP    = 2;
+        const BAR_TOP    = 22; // sous le numéro du jour
+        const top = BAR_TOP + track * (BAR_HEIGHT + BAR_GAP);
+
+        // Largeur : span sur N cellules (moins les marges)
+        const spanCount = weekCells.length;
+
+        bar.style.cssText = `
+          position: absolute;
+          top: ${top}px;
+          left: ${isStart ? "4px" : "0"};
+          width: calc(${spanCount * 100}% + ${spanCount - 1}px - ${isStart ? "4px" : "0px"} - ${isEnd ? "4px" : "0px"});
+          height: ${BAR_HEIGHT}px;
+          background: ${col.bar};
+          color: #fff;
+          font-size: 11px;
+          font-weight: 500;
+          line-height: ${BAR_HEIGHT}px;
+          padding: 0 6px;
+          border-radius: ${isStart ? "4px" : "0"} ${isEnd ? "4px" : "0"} ${isEnd ? "4px" : "0"} ${isStart ? "4px" : "0"};
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          z-index: 2;
+          cursor: default;
+          box-sizing: border-box;
+        `;
+
+        // N'afficher le prénom que sur la première cellule de la barre (début du congé ou début de semaine)
+        bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prénom : "";
+
+        // Positionner relativement à la cellule du 1er jour de la semaine
+        first.cell.style.position = "relative";
+        first.cell.style.overflow = "visible";
+        first.cell.appendChild(bar);
+      });
+    });
+
+    // Assurer que les cellules ont assez de hauteur pour les barres
+    const maxTracks = Math.max(0, ...Array.from(trackMap.values())) + 1;
+    const minHeight = 22 + maxTracks * 20 + 6;
+    grid.querySelectorAll(".cal-cell:not(.cal-day-name)").forEach((c) => {
+      c.style.minHeight = `${Math.max(minHeight, 60)}px`;
+    });
   }
 }
