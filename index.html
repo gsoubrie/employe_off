@@ -13,9 +13,24 @@
   .login-card p  { color:var(--text2); font-size:14px; margin:0 0 1.5rem; }
   .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
   .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
+  /* ── Toggles matin/après-midi ── */
   .periode-toggle { display:flex; gap:6px; }
-  .periode-btn { flex:1; padding:.5rem .25rem; border:1.5px solid var(--border); border-radius:var(--radius); background:var(--bg); color:var(--text2); font-size:13px; cursor:pointer; transition:all .15s; text-align:center; }
+  .periode-btn {
+    flex:1; padding:.5rem .5rem;
+    border:1.5px solid var(--border); border-radius:var(--radius);
+    background:var(--bg); color:var(--text2);
+    font-size:13px; cursor:pointer; transition:all .15s; text-align:center;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+  }
   .periode-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; font-weight:500; }
+  .periode-btn.active .check { opacity:1; }
+  .periode-btn .check { opacity:0; transition:opacity .15s; font-size:11px; }
+  .periode-btn:disabled { opacity:.35; cursor:not-allowed; }
+  /* Ligne fin optionnelle */
+  #fin-section { transition:opacity .2s; }
+  #fin-section.hidden { opacity:.4; pointer-events:none; }
+  .fin-toggle-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.5rem; }
+  .fin-toggle-row label { font-size:13px; color:var(--text2); cursor:pointer; display:flex; align-items:center; gap:.4rem; }
 </style>
 </head>
 <body>
@@ -64,35 +79,51 @@
         <input type="hidden" id="f-employee" />
       </div>
 
+      <!-- Début -->
       <div class="row-2">
         <div class="field">
           <label>Date de début *</label>
-          <input type="date" id="f-debut" oninput="updateDayPreview()" />
+          <input type="date" id="f-debut" oninput="onDebutChange()" />
         </div>
         <div class="field">
           <label>Période début</label>
           <div class="periode-toggle" id="toggle-debut">
-            <button class="periode-btn active" data-value="Journée"    onclick="setPeriode('debut','Journée')">Journée</button>
-            <button class="periode-btn"        data-value="Matin"      onclick="setPeriode('debut','Matin')">Matin</button>
-            <button class="periode-btn"        data-value="Après-midi" onclick="setPeriode('debut','Après-midi')">Après-midi</button>
+            <button class="periode-btn active" id="btn-debut-matin"    onclick="toggleDebut('Matin')">
+              <span class="check">✓</span> Matin
+            </button>
+            <button class="periode-btn active" id="btn-debut-apmidi"   onclick="toggleDebut('Après-midi')">
+              <span class="check">✓</span> Après-midi
+            </button>
           </div>
           <input type="hidden" id="f-periode-debut" value="Journée" />
         </div>
       </div>
 
-      <div class="row-2">
-        <div class="field">
-          <label>Date de fin *</label>
-          <input type="date" id="f-fin" oninput="updateDayPreview()" />
+      <!-- Fin (optionnelle) -->
+      <div id="fin-section">
+        <div class="fin-toggle-row">
+          <label>
+            <input type="checkbox" id="has-fin" onchange="toggleFinSection()" checked />
+            Date de fin différente du début
+          </label>
         </div>
-        <div class="field">
-          <label>Période fin</label>
-          <div class="periode-toggle" id="toggle-fin">
-            <button class="periode-btn active" data-value="Journée"    onclick="setPeriode('fin','Journée')">Journée</button>
-            <button class="periode-btn"        data-value="Matin"      onclick="setPeriode('fin','Matin')">Matin</button>
-            <button class="periode-btn"        data-value="Après-midi" onclick="setPeriode('fin','Après-midi')">Après-midi</button>
+        <div id="fin-fields" class="row-2">
+          <div class="field">
+            <label>Date de fin</label>
+            <input type="date" id="f-fin" oninput="updateDayPreview()" />
           </div>
-          <input type="hidden" id="f-periode-fin" value="Journée" />
+          <div class="field">
+            <label>Période fin</label>
+            <div class="periode-toggle" id="toggle-fin">
+              <button class="periode-btn active" id="btn-fin-matin"    onclick="toggleFin('Matin')">
+                <span class="check">✓</span> Matin
+              </button>
+              <button class="periode-btn active" id="btn-fin-apmidi"   onclick="toggleFin('Après-midi')">
+                <span class="check">✓</span> Après-midi
+              </button>
+            </div>
+            <input type="hidden" id="f-periode-fin" value="Journée" />
+          </div>
         </div>
       </div>
 
@@ -213,13 +244,125 @@ function bootApp() {
   }
 }
 
-// ── Périodes toggle ───────────────────────────────────────────
-function setPeriode(field, value) {
-  document.getElementById("f-periode-" + field).value = value;
-  document.querySelectorAll("#toggle-" + field + " .periode-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.value === value);
-  });
+// ── Logique toggles matin/après-midi ─────────────────────────
+// État interne : matin et apmidi sont true/false
+const periodeState = {
+  debut: { matin: true, apmidi: true },
+  fin:   { matin: true, apmidi: true },
+};
+
+function periodeFromState(state) {
+  if (state.matin && state.apmidi)  return "Journée";
+  if (state.matin)                  return "Matin";
+  if (state.apmidi)                 return "Après-midi";
+  return "Journée"; // fallback (ne devrait pas arriver)
+}
+
+function renderDebutBtns() {
+  const s = periodeState.debut;
+  const bm = document.getElementById("btn-debut-matin");
+  const ba = document.getElementById("btn-debut-apmidi");
+  bm.classList.toggle("active", s.matin);
+  ba.classList.toggle("active", s.apmidi);
+  document.getElementById("f-periode-debut").value = periodeFromState(s);
+  // Mettre à jour les contraintes de fin
+  applyFinConstraints();
   updateDayPreview();
+}
+
+function renderFinBtns() {
+  const s = periodeState.fin;
+  const bm = document.getElementById("btn-fin-matin");
+  const ba = document.getElementById("btn-fin-apmidi");
+  bm.classList.toggle("active", s.matin);
+  ba.classList.toggle("active", s.apmidi);
+  document.getElementById("f-periode-fin").value = periodeFromState(s);
+  updateDayPreview();
+}
+
+function toggleDebut(half) {
+  const s = periodeState.debut;
+  if (half === "Matin") {
+    // Ne pas désactiver si c'est le seul actif
+    if (s.matin && !s.apmidi) return;
+    s.matin = !s.matin;
+  } else {
+    if (!s.matin && s.apmidi) return;
+    s.apmidi = !s.apmidi;
+  }
+  renderDebutBtns();
+}
+
+function toggleFin(half) {
+  const s = periodeState.fin;
+  const debut = periodeState.debut;
+  const debutStr = document.getElementById("f-debut").value;
+  const finStr   = document.getElementById("f-fin").value;
+  const sameDay  = debutStr && finStr && debutStr === finStr;
+
+  if (half === "Matin") {
+    // Si même jour : matin fin ne peut être actif que si matin début est actif
+    if (!s.matin && sameDay && !debut.matin) return; // matin début éteint → pas de matin fin
+    if (s.matin && !s.apmidi) return; // dernier actif
+    s.matin = !s.matin;
+  } else {
+    if (!s.matin && s.apmidi) return; // dernier actif
+    s.apmidi = !s.apmidi;
+  }
+  renderFinBtns();
+}
+
+// Contraintes de continuité sur les boutons de fin
+function applyFinConstraints() {
+  const s    = periodeState.debut;
+  const finS = periodeState.fin;
+  const debutStr = document.getElementById("f-debut").value;
+  const finStr   = document.getElementById("f-fin").value;
+  const sameDay  = debutStr && finStr && debutStr === finStr;
+  const btnMatin = document.getElementById("btn-fin-matin");
+
+  // Si début = après-midi seulement → fin ne peut pas commencer le matin (autre jour)
+  // Si même jour et début = après-midi → fin matin impossible
+  if (!s.matin && s.apmidi) {
+    // Début est après-midi : fin matin impossible (pas continu)
+    btnMatin.disabled = true;
+    if (finS.matin) { finS.matin = false; if (!finS.apmidi) finS.apmidi = true; renderFinBtns(); }
+  } else {
+    btnMatin.disabled = false;
+  }
+
+  // Même jour : fin matin impossible si début = après-midi
+  if (sameDay && !s.matin) {
+    btnMatin.disabled = true;
+    if (finS.matin) { finS.matin = false; if (!finS.apmidi) finS.apmidi = true; renderFinBtns(); }
+  }
+}
+
+function onDebutChange() {
+  applyFinConstraints();
+  updateDayPreview();
+}
+
+// Afficher/masquer la section fin
+function toggleFinSection() {
+  const hasFin = document.getElementById("has-fin").checked;
+  const fields = document.getElementById("fin-fields");
+  fields.style.display = hasFin ? "" : "none";
+  if (!hasFin) document.getElementById("f-fin").value = "";
+  updateDayPreview();
+}
+
+function resetForm() {
+  document.getElementById("f-debut").value = "";
+  document.getElementById("f-fin").value   = "";
+  document.getElementById("has-fin").checked = true;
+  document.getElementById("fin-fields").style.display = "";
+  document.getElementById("f-note").value  = "";
+  periodeState.debut = { matin: true, apmidi: true };
+  periodeState.fin   = { matin: true, apmidi: true };
+  renderDebutBtns();
+  renderFinBtns();
+  document.getElementById("preview-days").style.display = "none";
 }
 
 // ── Navigation ────────────────────────────────────────────────
@@ -233,13 +376,16 @@ function switchTab(t) {
 
 // ── Aperçu jours ─────────────────────────────────────────────
 function updateDayPreview() {
-  const debut = document.getElementById("f-debut").value;
-  const fin   = document.getElementById("f-fin").value;
-  const pd    = document.getElementById("f-periode-debut").value;
-  const pf    = document.getElementById("f-periode-fin").value;
-  const box   = document.getElementById("preview-days");
-  if (!debut || !fin || debut > fin) { box.style.display = "none"; return; }
-  const nb = calculateDays(debut, fin, pd, pf);
+  const debut  = document.getElementById("f-debut").value;
+  const hasFin = document.getElementById("has-fin").checked;
+  const fin    = hasFin ? document.getElementById("f-fin").value : debut;
+  const pd     = document.getElementById("f-periode-debut").value;
+  const pf     = hasFin ? document.getElementById("f-periode-fin").value : pd;
+  const box    = document.getElementById("preview-days");
+  if (!debut) { box.style.display = "none"; return; }
+  if (hasFin && fin && debut > fin) { box.style.display = "none"; return; }
+  const effectiveFin = fin || debut;
+  const nb = calculateDays(debut, effectiveFin, pd, pf);
   box.style.display = "block";
   box.innerHTML = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
 }
@@ -249,19 +395,25 @@ async function handleSubmit() {
   const btn = document.querySelector('[onclick="handleSubmit()"]');
   btn.disabled = true; btn.textContent = "Envoi...";
   try {
+    const hasFin = document.getElementById("has-fin").checked;
+    const debut  = document.getElementById("f-debut").value;
+    const fin    = hasFin && document.getElementById("f-fin").value
+                   ? document.getElementById("f-fin").value
+                   : debut;
+    const pd     = document.getElementById("f-periode-debut").value;
+    const pf     = hasFin && document.getElementById("f-fin").value
+                   ? document.getElementById("f-periode-fin").value
+                   : pd;
     await submitLeave({
       employeeId:   currentEmployee.id,
-      debut:        document.getElementById("f-debut").value,
-      fin:          document.getElementById("f-fin").value,
-      periodeDebut: document.getElementById("f-periode-debut").value,
-      periodeFin:   document.getElementById("f-periode-fin").value,
+      debut, fin,
+      periodeDebut: pd,
+      periodeFin:   pf,
       typeId:       document.getElementById("f-type").value,
       note:         document.getElementById("f-note").value,
     });
     showToast("Demande soumise — mail envoyé aux managers !");
-    ["f-debut","f-fin","f-note"].forEach((id) => document.getElementById(id).value = "");
-    setPeriode("debut","Journée"); setPeriode("fin","Journée");
-    document.getElementById("preview-days").style.display = "none";
+    resetForm();
   } catch (err) {
     showToast(err.message, "error");
   } finally {
