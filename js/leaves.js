@@ -96,14 +96,17 @@ function buildEmailSubject(leave) {
 }
 
 function sendLeaveRequestEmail(leave) {
-  const allManagers = getAllManagers();
+  const allManagers   = getAllManagers();
+  const directManager = getManagerById(leave.managerId);
   if (!allManagers.length) return;
 
-  const nb       = leave.nbJours;
-  const subject  = encodeURIComponent(buildEmailSubject(leave));
-  const toEmail  = allManagers[0].email;
+  const nb      = leave.nbJours;
+  const subject = encodeURIComponent(buildEmailSubject(leave));
+
+  // Manager direct en destinataire principal, les autres managers en CC
+  const toEmail  = directManager ? directManager.email : allManagers[0].email;
   const ccEmails = [
-    ...allManagers.slice(1).map((m) => m.email),
+    ...allManagers.filter((m) => m.email !== toEmail).map((m) => m.email),
     leave.employeeEmail,
   ].filter(Boolean).join(",");
 
