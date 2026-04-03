@@ -5,8 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Espace Manager — Congés Équipe</title>
 <link rel="stylesheet" href="css/style.css" />
+<style>
+  #login-wall { display:none; min-height:100vh; align-items:center; justify-content:center; background:var(--bg2); }
+  #login-wall.visible { display:flex; }
+  .login-card { background:var(--bg); border-radius:var(--radius-lg); padding:2.5rem 2rem; width:min(380px,92vw); text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.08); }
+  .login-card h2 { margin:0 0 .5rem; font-size:1.25rem; }
+  .login-card p  { color:var(--text2); font-size:14px; margin:0 0 1.5rem; }
+  .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
+  .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
+</style>
 </head>
 <body>
+
+<div id="login-wall">
+  <div class="login-card">
+    <div class="login-icon">🔒</div>
+    <h2>Accès réservé aux managers</h2>
+    <p>Vous devez être manager pour accéder à cette page.</p>
+    <a href="index.html" class="btn">← Retour</a>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 <div class="container">
 
   <div class="page-header">
@@ -14,19 +34,17 @@
       <h1>Espace Manager</h1>
       <div class="subtitle">Validation des demandes de congés</div>
     </div>
-    <a href="index.html" class="btn">← Retour employés</a>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div class="user-badge">
+        <span id="user-avatar-header"></span>
+        <span id="user-name-header"></span>
+      </div>
+      <a id="employee-link" href="index.html" class="btn">← Vue employé</a>
+    </div>
   </div>
 
-  <!-- Banner Firebase non configuré -->
   <div id="firebase-banner" class="firebase-banner" style="display:none">
-    <strong>Configuration Firebase requise</strong> — Ouvrez <code>js/firebase.js</code>
-    et renseignez votre <code>FIREBASE_CONFIG</code>.
-  </div>
-
-  <!-- Sélecteur de manager (pour signature des mails de réponse) -->
-  <div style="margin-bottom:1.5rem">
-    <label style="margin-bottom:.5rem">Vous êtes :</label>
-    <div class="manager-switcher" id="manager-switcher"></div>
+    <strong>Configuration Firebase requise</strong>
   </div>
 
   <div class="tabs">
@@ -35,26 +53,22 @@
     <button class="tab" onclick="switchTab('calendrier')">Calendrier équipe</button>
   </div>
 
-  <!-- ═══════════════ EN ATTENTE ═══════════════ -->
+  <!-- ═══ EN ATTENTE ═══ -->
   <div id="tab-pending" class="section active">
     <div class="card">
-      <div id="pending-list">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
+      <div id="pending-list"><div class="loading-state"><div class="spinner"></div></div></div>
     </div>
   </div>
 
-  <!-- ═══════════════ TOUTES ═══════════════ -->
+  <!-- ═══ TOUTES ═══ -->
   <div id="tab-all" class="section">
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
-      <div id="all-list">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
+      <div id="all-list"><div class="loading-state"><div class="spinner"></div></div></div>
     </div>
   </div>
 
-  <!-- ═══════════════ CALENDRIER ═══════════════ -->
+  <!-- ═══ CALENDRIER ═══ -->
   <div id="tab-calendrier" class="section">
     <div class="card card-sm">
       <div class="cal-header">
@@ -67,17 +81,15 @@
       </div>
       <div id="cal-legend" class="cal-legend"></div>
       <div class="cal-grid" id="cal-grid">
-        <div class="cal-day-name">Lun</div>
-        <div class="cal-day-name">Mar</div>
-        <div class="cal-day-name">Mer</div>
-        <div class="cal-day-name">Jeu</div>
-        <div class="cal-day-name">Ven</div>
-        <div class="cal-day-name">Sam</div>
+        <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div>
+        <div class="cal-day-name">Mer</div><div class="cal-day-name">Jeu</div>
+        <div class="cal-day-name">Ven</div><div class="cal-day-name">Sam</div>
         <div class="cal-day-name">Dim</div>
       </div>
     </div>
   </div>
 
+</div>
 </div>
 
 <!-- Modal refus -->
@@ -97,11 +109,8 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<!-- Config & composants -->
 <script src="config/employees.js"></script>
 <script src="config/leaveTypes.js"></script>
 <script src="js/firebase.js"></script>
@@ -110,50 +119,63 @@
 <script src="js/leaves.js"></script>
 
 <script>
-let currentManagerId = null;
-let allLeaves        = [];
-let pendingRejectId  = null;
+let currentManager  = null;
+let allLeaves       = [];
+let pendingRejectId = null;
 let cal;
-let unsubscribe      = null;
+let unsubscribe     = null;
 
+// ── Auth ──────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
-  initFirebase();
-  checkFirebaseBanner();
-  buildManagerSwitcher();
-  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
+  const urlToken = new URLSearchParams(window.location.search).get("token");
+  const token    = urlToken || (() => { try { return sessionStorage.getItem("conges_token"); } catch(e){} })();
 
-  if (MANAGERS.length > 0) selectManager(MANAGERS[0].id);
+  if (!token) { showLoginWall(); return; }
+  const employee = getEmployeeByToken(token);
+  if (!employee || !isManager(employee.id)) { showLoginWall(); return; }
+
+  try { sessionStorage.setItem("conges_token", token); } catch(e){}
+  if (urlToken) {
+    const u = new URL(window.location.href);
+    u.searchParams.delete("token");
+    window.history.replaceState({}, "", u.toString());
+  }
+
+  currentManager = employee;
+  bootApp();
 });
 
-function buildManagerSwitcher() {
-  const el = document.getElementById("manager-switcher");
-  el.innerHTML = MANAGERS.map((m) => `
-    <button class="manager-chip" id="chip-${m.id}" onclick="selectManager('${m.id}')">
-      ${fullName(m)}
-    </button>
-  `).join("");
+function showLoginWall() {
+  document.getElementById("login-wall").classList.add("visible");
 }
 
-function selectManager(managerId) {
-  currentManagerId = managerId;
-  document.querySelectorAll(".manager-chip").forEach((el) => el.classList.remove("active"));
-  const chip = document.getElementById("chip-" + managerId);
-  if (chip) chip.classList.add("active");
+function bootApp() {
+  document.getElementById("app").style.display = "block";
+  document.getElementById("user-name-header").textContent = fullName(currentManager);
+  document.getElementById("user-avatar-header").innerHTML = avatarHTML(currentManager);
 
-  if (unsubscribe) unsubscribe();
-  if (!isFirebaseConfigured()) return;
+  // Lien retour employé avec token
+  try {
+    document.getElementById("employee-link").href =
+      "index.html?token=" + sessionStorage.getItem("conges_token");
+  } catch(e){}
 
-  // Tous les managers voient toutes les demandes
-  unsubscribe = listenLeaves([], (leaves) => {
-    allLeaves = leaves.sort((a, b) => b.debut.localeCompare(a.debut));
-    renderAll();
-  });
+  initFirebase();
+  checkFirebaseBanner();
+  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
+
+  if (isFirebaseConfigured()) {
+    unsubscribe = listenLeaves([], (leaves) => {
+      allLeaves = leaves.sort((a, b) => b.debut.localeCompare(a.debut));
+      renderAll();
+    });
+  }
 }
 
+// ── Navigation ────────────────────────────────────────────────
 function switchTab(t) {
-  document.querySelectorAll(".tab").forEach((el, i) => {
-    el.classList.toggle("active", ["pending","all","calendrier"][i] === t);
-  });
+  document.querySelectorAll(".tab").forEach((el, i) =>
+    el.classList.toggle("active", ["pending","all","calendrier"][i] === t));
   document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
   document.getElementById("tab-" + t).classList.add("active");
   if (t === "calendrier") cal.render();
@@ -171,25 +193,18 @@ function renderPending() {
   const badge = document.getElementById("badge-pending");
   badge.textContent = pending.length ? ` (${pending.length})` : "";
   badge.style.color = pending.length ? "var(--amber)" : "";
-
   const el = document.getElementById("pending-list");
-  if (!pending.length) {
-    el.innerHTML = '<div class="empty">Aucune demande en attente ✓</div>';
-    return;
-  }
+  if (!pending.length) { el.innerHTML = '<div class="empty">Aucune demande en attente ✓</div>'; return; }
   el.innerHTML = pending.map((l) =>
-    renderLeaveItem(l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal" })
+    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal" })
   ).join("");
 }
 
 function renderAllList() {
   const el = document.getElementById("all-list");
-  if (!allLeaves.length) {
-    el.innerHTML = '<div class="empty">Aucun congé enregistré</div>';
-    return;
-  }
+  if (!allLeaves.length) { el.innerHTML = '<div class="empty">Aucun congé enregistré</div>'; return; }
   el.innerHTML = allLeaves.map((l) =>
-    renderLeaveItem(l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal" })
+    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal" })
   ).join("");
 }
 
@@ -199,8 +214,7 @@ function renderStats() {
     <div class="stat-card"><div class="stat-label">Total demandes</div><div class="stat-value">${s.total}</div></div>
     <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--amber)">${s.pending}</div></div>
     <div class="stat-card"><div class="stat-label">Approuvés</div><div class="stat-value" style="color:var(--green)">${s.approved}</div></div>
-    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>
-  `;
+    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>`;
 }
 
 // ── Actions ───────────────────────────────────────────────────
@@ -209,9 +223,7 @@ async function handleApprove(id) {
     await updateLeaveStatus(id, "approved");
     showToast("Congé approuvé");
     sendStatusEmail(id, "approved");
-  } catch (e) {
-    showToast("Erreur : " + e.message, "error");
-  }
+  } catch (e) { showToast("Erreur : " + e.message, "error"); }
 }
 
 function openRejectModal(id) {
@@ -233,31 +245,24 @@ async function confirmReject() {
     showToast("Congé refusé");
     sendStatusEmail(pendingRejectId, "rejected", comment);
     closeModal();
-  } catch (e) {
-    showToast("Erreur : " + e.message, "error");
-  }
+  } catch (e) { showToast("Erreur : " + e.message, "error"); }
 }
 
-// Mail de réponse à l'employé, signé par le manager actif
+// Mail de réponse signé par le manager connecté
 function sendStatusEmail(leaveId, status, comment = "") {
   const leave = allLeaves.find((l) => l.id === leaveId);
   if (!leave || !leave.employeeEmail) return;
-
-  const currentManager = getManagerById(currentManagerId);
-  const managerName    = currentManager ? fullName(currentManager) : "Le manager";
-  const label          = status === "approved" ? "approuvée" : "refusée";
-  const nb             = leave.nbJours || dayCount(leave.debut, leave.fin);
-
+  const label = status === "approved" ? "approuvée" : "refusée";
+  const nb    = leave.nbJours || dayCount(leave.debut, leave.fin);
   const subject = encodeURIComponent(`Votre demande de congé a été ${label}`);
   const body = encodeURIComponent(
 `Bonjour ${leave.employeeName.split(" ")[0]},
 
-Votre demande de ${leave.typeLabel} (${formatDate(leave.debut)} → ${formatDate(leave.fin)}, ${nb} jour${nb > 1 ? "s" : ""}) a été ${label}.
+Votre demande de ${leave.typeLabel} (${formatDate(leave.debut)} → ${formatDate(leave.fin)}, ${nb} jour${nb>1?"s":""}) a été ${label}.
 ${comment ? `\nCommentaire : ${comment}\n` : ""}
 Cordialement,
-${managerName}`
+${fullName(currentManager)}`
   );
-
   window.location.href = `mailto:${leave.employeeEmail}?subject=${subject}&body=${body}`;
 }
 

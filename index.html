@@ -5,8 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Congés Équipe</title>
 <link rel="stylesheet" href="css/style.css" />
+<style>
+  #login-wall { display:none; min-height:100vh; align-items:center; justify-content:center; background:var(--bg2); }
+  #login-wall.visible { display:flex; }
+  .login-card { background:var(--bg); border-radius:var(--radius-lg); padding:2.5rem 2rem; width:min(380px,92vw); text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.08); }
+  .login-card h2 { margin:0 0 .5rem; font-size:1.25rem; }
+  .login-card p  { color:var(--text2); font-size:14px; margin:0 0 1.5rem; }
+  .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
+  .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
+  .periode-toggle { display:flex; gap:6px; }
+  .periode-btn { flex:1; padding:.5rem .25rem; border:1.5px solid var(--border); border-radius:var(--radius); background:var(--bg); color:var(--text2); font-size:13px; cursor:pointer; transition:all .15s; text-align:center; }
+  .periode-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; font-weight:500; }
+</style>
 </head>
 <body>
+
+<div id="login-wall">
+  <div class="login-card">
+    <div class="login-icon">🔒</div>
+    <h2>Accès non autorisé</h2>
+    <p>Ce lien est invalide ou expiré.<br>Contactez un manager pour recevoir votre lien personnel.</p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 <div class="container">
 
   <div class="page-header">
@@ -14,29 +36,34 @@
       <h1>Congés Équipe</h1>
       <div class="subtitle">Saisie et suivi des absences</div>
     </div>
-    <a href="manager.html" class="btn">Vue manager →</a>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div class="user-badge">
+        <span id="user-avatar-header"></span>
+        <span id="user-name-header"></span>
+      </div>
+      <a id="manager-link" href="manager.html" class="btn" style="display:none">Vue manager →</a>
+    </div>
   </div>
 
-  <!-- Banner Firebase non configuré -->
   <div id="firebase-banner" class="firebase-banner" style="display:none">
-    <strong>Configuration Firebase requise</strong> — Ouvrez <code>js/firebase.js</code>
-    et remplacez les valeurs de <code>FIREBASE_CONFIG</code> par celles de votre projet Firebase.
-    (<a href="https://console.firebase.google.com" target="_blank" style="color:inherit">console.firebase.google.com</a>)
+    <strong>Configuration Firebase requise</strong>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('saisie')">Saisie</button>
     <button class="tab" onclick="switchTab('calendrier')">Calendrier</button>
-    <button class="tab" onclick="switchTab('liste')">Tous les congés</button>
+    <button class="tab" onclick="switchTab('liste')">Mes congés</button>
   </div>
 
-  <!-- ═══════════════ SAISIE ═══════════════ -->
+  <!-- ═══ SAISIE ═══ -->
   <div id="tab-saisie" class="section active">
     <div class="card">
       <div class="field">
-        <label>Employé *</label>
-        <select id="f-employee"></select>
+        <label>Employé</label>
+        <div id="f-employee-display" style="padding:.55rem .75rem;background:var(--bg2);border-radius:var(--radius);font-weight:500"></div>
+        <input type="hidden" id="f-employee" />
       </div>
+
       <div class="row-2">
         <div class="field">
           <label>Date de début *</label>
@@ -44,14 +71,15 @@
         </div>
         <div class="field">
           <label>Période début</label>
-          <select id="f-periode-debut" onchange="updateDayPreview()">
-            <option value="Journée">Journée</option>
-            <option value="Matin">Matin</option>
-            <option value="Midi">Midi</option>
-            <option value="Soir">Soir</option>
-          </select>
+          <div class="periode-toggle" id="toggle-debut">
+            <button class="periode-btn active" data-value="Journée"    onclick="setPeriode('debut','Journée')">Journée</button>
+            <button class="periode-btn"        data-value="Matin"      onclick="setPeriode('debut','Matin')">Matin</button>
+            <button class="periode-btn"        data-value="Après-midi" onclick="setPeriode('debut','Après-midi')">Après-midi</button>
+          </div>
+          <input type="hidden" id="f-periode-debut" value="Journée" />
         </div>
       </div>
+
       <div class="row-2">
         <div class="field">
           <label>Date de fin *</label>
@@ -59,15 +87,17 @@
         </div>
         <div class="field">
           <label>Période fin</label>
-          <select id="f-periode-fin" onchange="updateDayPreview()">
-            <option value="Journée">Journée</option>
-            <option value="Matin">Matin</option>
-            <option value="Midi">Midi</option>
-            <option value="Soir">Soir</option>
-          </select>
+          <div class="periode-toggle" id="toggle-fin">
+            <button class="periode-btn active" data-value="Journée"    onclick="setPeriode('fin','Journée')">Journée</button>
+            <button class="periode-btn"        data-value="Matin"      onclick="setPeriode('fin','Matin')">Matin</button>
+            <button class="periode-btn"        data-value="Après-midi" onclick="setPeriode('fin','Après-midi')">Après-midi</button>
+          </div>
+          <input type="hidden" id="f-periode-fin" value="Journée" />
         </div>
       </div>
+
       <div id="preview-days" style="display:none;margin-bottom:.75rem;padding:.6rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
+
       <div class="field">
         <label>Type de congé *</label>
         <select id="f-type"></select>
@@ -76,14 +106,13 @@
         <label>Note (optionnelle)</label>
         <textarea id="f-note" rows="2" placeholder="Informations complémentaires..."></textarea>
       </div>
-      <div id="preview-manager" style="display:none;margin-top:.5rem;padding:.75rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
       <div class="btn-row">
         <button class="btn primary" onclick="handleSubmit()">Soumettre la demande</button>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════════ CALENDRIER ═══════════════ -->
+  <!-- ═══ CALENDRIER ═══ -->
   <div id="tab-calendrier" class="section">
     <div class="card card-sm">
       <div class="cal-header">
@@ -96,50 +125,30 @@
       </div>
       <div id="cal-legend" class="cal-legend"></div>
       <div class="cal-grid" id="cal-grid">
-        <div class="cal-day-name">Lun</div>
-        <div class="cal-day-name">Mar</div>
-        <div class="cal-day-name">Mer</div>
-        <div class="cal-day-name">Jeu</div>
-        <div class="cal-day-name">Ven</div>
-        <div class="cal-day-name">Sam</div>
+        <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div>
+        <div class="cal-day-name">Mer</div><div class="cal-day-name">Jeu</div>
+        <div class="cal-day-name">Ven</div><div class="cal-day-name">Sam</div>
         <div class="cal-day-name">Dim</div>
       </div>
     </div>
-    <p style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center">
-      Seuls les congés approuvés apparaissent sur le calendrier.
-    </p>
+    <p style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center">Seuls les congés approuvés apparaissent.</p>
   </div>
 
-  <!-- ═══════════════ LISTE ═══════════════ -->
+  <!-- ═══ MES CONGÉS ═══ -->
   <div id="tab-liste" class="section">
     <div class="stats-grid" id="stats-grid"></div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-      <select id="filter-status" class="btn" style="width:auto" onchange="applyFilters()">
-        <option value="">Tous les statuts</option>
-        <option value="pending">En attente</option>
-        <option value="approved">Approuvés</option>
-        <option value="rejected">Refusés</option>
-      </select>
-      <select id="filter-employee" class="btn" style="width:auto" onchange="applyFilters()">
-        <option value="">Tous les employés</option>
-      </select>
-    </div>
     <div class="card">
-      <div id="leaves-list">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
+      <div id="leaves-list"><div class="loading-state"><div class="spinner"></div></div></div>
     </div>
   </div>
 
 </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<!-- Config & composants -->
 <script src="config/employees.js"></script>
 <script src="config/leaveTypes.js"></script>
 <script src="js/firebase.js"></script>
@@ -148,79 +157,100 @@
 <script src="js/leaves.js"></script>
 
 <script>
-// ── Init ──────────────────────────────────────────────────────
+let currentEmployee = null;
 let allLeaves = [];
 let cal;
 
+// ── Auth ──────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  const urlToken = new URLSearchParams(window.location.search).get("token");
+  const token    = urlToken || (() => { try { return sessionStorage.getItem("conges_token"); } catch(e){} })();
+
+  if (!token) { showLoginWall(); return; }
+  const employee = getEmployeeByToken(token);
+  if (!employee) { showLoginWall(); return; }
+
+  try { sessionStorage.setItem("conges_token", token); } catch(e){}
+  if (urlToken) {
+    const u = new URL(window.location.href);
+    u.searchParams.delete("token");
+    window.history.replaceState({}, "", u.toString());
+  }
+
+  currentEmployee = employee;
+  bootApp();
+});
+
+function showLoginWall() {
+  document.getElementById("login-wall").classList.add("visible");
+}
+
+function bootApp() {
+  document.getElementById("app").style.display = "block";
+  document.getElementById("f-employee").value = currentEmployee.id;
+  document.getElementById("f-employee-display").textContent = fullName(currentEmployee);
+  document.getElementById("user-name-header").textContent   = fullName(currentEmployee);
+  document.getElementById("user-avatar-header").innerHTML   = avatarHTML(currentEmployee);
+
+  if (isManager(currentEmployee.id)) {
+    const lnk = document.getElementById("manager-link");
+    lnk.style.display = "inline-flex";
+    try { lnk.href = "manager.html?token=" + sessionStorage.getItem("conges_token"); } catch(e){}
+  }
+
   initFirebase();
   checkFirebaseBanner();
-  populateEmployeeSelect("f-employee");
-  populateEmployeeSelect("filter-employee", "Tous les employés");
   populateLeaveTypeSelect("f-type");
-
   cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
 
-  // Écoute temps réel
   if (isFirebaseConfigured()) {
     listenLeaves([], (leaves) => {
       allLeaves = leaves;
       cal.setLeaves(leaves);
-      applyFilters();
+      renderMyLeaves();
       renderStats();
     });
   }
+}
 
-  // Aperçu manager au changement d'employé
-  document.getElementById("f-employee").addEventListener("change", updateManagerPreview);
-});
-
-function switchTab(t) {
-  document.querySelectorAll(".tab").forEach((el, i) => {
-    el.classList.toggle("active", ["saisie","calendrier","liste"][i] === t);
+// ── Périodes toggle ───────────────────────────────────────────
+function setPeriode(field, value) {
+  document.getElementById("f-periode-" + field).value = value;
+  document.querySelectorAll("#toggle-" + field + " .periode-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.value === value);
   });
+  updateDayPreview();
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll(".tab").forEach((el, i) =>
+    el.classList.toggle("active", ["saisie","calendrier","liste"][i] === t));
   document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
   document.getElementById("tab-" + t).classList.add("active");
   if (t === "calendrier") cal.render();
 }
 
-// ── Aperçu jours calculés ────────────────────────────────────
+// ── Aperçu jours ─────────────────────────────────────────────
 function updateDayPreview() {
   const debut = document.getElementById("f-debut").value;
   const fin   = document.getElementById("f-fin").value;
   const pd    = document.getElementById("f-periode-debut").value;
   const pf    = document.getElementById("f-periode-fin").value;
   const box   = document.getElementById("preview-days");
-  if (!debut || !fin) { box.style.display = "none"; return; }
-  if (debut > fin)    { box.style.display = "none"; return; }
+  if (!debut || !fin || debut > fin) { box.style.display = "none"; return; }
   const nb = calculateDays(debut, fin, pd, pf);
   box.style.display = "block";
   box.innerHTML = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
 }
 
-// ── Aperçu manager ────────────────────────────────────────────
-function updateManagerPreview() {
-  const empId = document.getElementById("f-employee").value;
-  const box = document.getElementById("preview-manager");
-  if (!empId) { box.style.display = "none"; return; }
-  const manager = getManagerForEmployee(empId);
-  if (manager) {
-    box.style.display = "block";
-    box.innerHTML = `Un mail sera envoyé à <strong>${fullName(manager)}</strong> (${manager.email}) pour validation.`;
-  } else {
-    box.style.display = "none";
-  }
-}
-
 // ── Soumission ────────────────────────────────────────────────
 async function handleSubmit() {
   const btn = document.querySelector('[onclick="handleSubmit()"]');
-  btn.disabled = true;
-  btn.textContent = "Envoi...";
-
+  btn.disabled = true; btn.textContent = "Envoi...";
   try {
     await submitLeave({
-      employeeId:   document.getElementById("f-employee").value,
+      employeeId:   currentEmployee.id,
       debut:        document.getElementById("f-debut").value,
       fin:          document.getElementById("f-fin").value,
       periodeDebut: document.getElementById("f-periode-debut").value,
@@ -228,59 +258,41 @@ async function handleSubmit() {
       typeId:       document.getElementById("f-type").value,
       note:         document.getElementById("f-note").value,
     });
-    showToast("Demande soumise — le mail part vers le manager !");
-    ["f-employee","f-debut","f-fin","f-note"].forEach((id) => document.getElementById(id).value = "");
-    document.getElementById("f-periode-debut").value = "Journée";
-    document.getElementById("f-periode-fin").value = "Journée";
+    showToast("Demande soumise — mail envoyé aux managers !");
+    ["f-debut","f-fin","f-note"].forEach((id) => document.getElementById(id).value = "");
+    setPeriode("debut","Journée"); setPeriode("fin","Journée");
     document.getElementById("preview-days").style.display = "none";
-    document.getElementById("preview-manager").style.display = "none";
   } catch (err) {
     showToast(err.message, "error");
   } finally {
-    btn.disabled = false;
-    btn.textContent = "Soumettre la demande";
+    btn.disabled = false; btn.textContent = "Soumettre la demande";
   }
 }
 
-// ── Filtres & liste ───────────────────────────────────────────
-function applyFilters() {
-  const statusF  = document.getElementById("filter-status").value;
-  const employeeF = document.getElementById("filter-employee").value;
-
-  let filtered = [...allLeaves];
-  if (statusF)   filtered = filtered.filter((l) => l.status === statusF);
-  if (employeeF) filtered = filtered.filter((l) => l.employeeId === employeeF);
-  filtered.sort((a,b) => b.debut.localeCompare(a.debut));
-
+// ── Mes congés ────────────────────────────────────────────────
+function renderMyLeaves() {
+  const mine = allLeaves
+    .filter((l) => l.employeeId === currentEmployee.id)
+    .sort((a, b) => b.debut.localeCompare(a.debut));
   const el = document.getElementById("leaves-list");
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty">Aucun congé trouvé</div>';
-    return;
-  }
-  el.innerHTML = filtered.map((l) =>
-    renderLeaveItem(l, { onDelete: "handleDelete" })
-  ).join("");
+  if (!mine.length) { el.innerHTML = '<div class="empty">Aucun congé enregistré</div>'; return; }
+  el.innerHTML = mine.map((l) => renderLeaveItem(l, { onDelete: "handleDelete" })).join("");
 }
 
 async function handleDelete(id) {
   if (!confirm("Supprimer ce congé ?")) return;
-  try {
-    await fsDelete("conges", id);
-    showToast("Congé supprimé");
-  } catch (e) {
-    showToast("Erreur lors de la suppression", "error");
-  }
+  try { await fsDelete("conges", id); showToast("Congé supprimé"); }
+  catch (e) { showToast("Erreur lors de la suppression", "error"); }
 }
 
-// ── Stats ─────────────────────────────────────────────────────
 function renderStats() {
-  const s = computeStats(allLeaves);
+  const mine = allLeaves.filter((l) => l.employeeId === currentEmployee.id);
+  const s = computeStats(mine);
   document.getElementById("stats-grid").innerHTML = `
     <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${s.total}</div></div>
     <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--amber)">${s.pending}</div></div>
     <div class="stat-card"><div class="stat-label">Approuvés</div><div class="stat-value" style="color:var(--green)">${s.approved}</div></div>
-    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>
-  `;
+    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>`;
 }
 </script>
 </body>
