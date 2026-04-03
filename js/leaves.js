@@ -5,23 +5,61 @@
 const COLLECTION = "conges";
 const PAYFIT_SUBJECT_TYPES = ["CP", "MALADIE", "FAMILLE", "AUTRE"];
 
+// ── Jours fériés français ─────────────────────────────────────
+function getFeriesForYear(year) {
+  function easterSunday(y) {
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100;
+    const d = Math.floor(b / 4), e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day   = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, month - 1, day);
+  }
+  const paques  = easterSunday(year);
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const fmt     = (d) => d.toISOString().slice(0, 10);
+  return new Set([
+    `${year}-01-01`, `${year}-05-01`, `${year}-05-08`,
+    `${year}-07-14`, `${year}-08-15`, `${year}-11-01`,
+    `${year}-11-11`, `${year}-12-25`,
+    fmt(addDays(paques,  1)),  // Lundi de Pâques
+    fmt(addDays(paques, 39)),  // Ascension
+    // Lundi de Pentecôte travaillé chez Shinken — non inclus
+  ]);
+}
+const _feriesCache = {};
+function isFerie(dateStr) {
+  const year = parseInt(dateStr.slice(0, 4));
+  if (!_feriesCache[year]) _feriesCache[year] = getFeriesForYear(year);
+  return _feriesCache[year].has(dateStr);
+}
+
 // ── Calcul du nombre de jours ─────────────────────────────────
 // Journée = 1j, Matin = 0.5j, Après-midi = 0.5j
+// Samedis, dimanches et jours fériés français exclus.
 
 function periodeValue(periode) {
   return periode === "Journée" ? 1 : 0.5;
 }
 
 function calculateDays(debut, fin, periodeDebut, periodeFin) {
-  if (debut === fin) return periodeValue(periodeDebut);
-
+  if (debut === fin) {
+    const d = new Date(debut + "T00:00");
+    if (d.getDay() === 0 || d.getDay() === 6 || isFerie(debut)) return 0;
+    return periodeValue(periodeDebut);
+  }
   let total = 0;
   const d2  = new Date(fin   + "T00:00");
   const cur = new Date(debut + "T00:00");
   while (cur <= d2) {
-    const dow = cur.getDay();
-    if (dow !== 0 && dow !== 6) {
-      const dateStr = cur.toISOString().slice(0, 10);
+    const dow     = cur.getDay();
+    const dateStr = cur.toISOString().slice(0, 10);
+    if (dow !== 0 && dow !== 6 && !isFerie(dateStr)) {
       if      (dateStr === debut) total += periodeValue(periodeDebut);
       else if (dateStr === fin)   total += periodeValue(periodeFin);
       else                        total += 1;
