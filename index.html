@@ -16,21 +16,19 @@
   /* ── Toggles matin/après-midi ── */
   .periode-toggle { display:flex; gap:6px; }
   .periode-btn {
-    flex:1; padding:.5rem .5rem;
+    flex:1; padding:.45rem .5rem;
     border:1.5px solid var(--border); border-radius:var(--radius);
     background:var(--bg); color:var(--text2);
-    font-size:13px; cursor:pointer; transition:all .15s; text-align:center;
-    display:flex; align-items:center; justify-content:center; gap:5px;
+    font-size:13px; font-weight:500; cursor:pointer;
+    transition:background .15s, border-color .15s, color .15s, opacity .15s;
+    text-align:center; user-select:none;
   }
-  .periode-btn.active { border-color:var(--primary); background:var(--primary); color:#fff; font-weight:500; }
-  .periode-btn.active .check { opacity:1; }
-  .periode-btn .check { opacity:0; transition:opacity .15s; font-size:11px; }
-  .periode-btn:disabled { opacity:.35; cursor:not-allowed; }
-  /* Ligne fin optionnelle */
-  #fin-section { transition:opacity .2s; }
-  #fin-section.hidden { opacity:.4; pointer-events:none; }
-  .fin-toggle-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.5rem; }
-  .fin-toggle-row label { font-size:13px; color:var(--text2); cursor:pointer; display:flex; align-items:center; gap:.4rem; }
+  .periode-btn.on  { border-color:var(--primary); background:var(--primary); color:#fff; }
+  .periode-btn.off { border-color:var(--border);  background:var(--bg);      color:var(--text3); text-decoration:line-through; }
+  .periode-btn:disabled { opacity:.3; cursor:not-allowed; }
+  /* Fin optionnelle */
+  .fin-toggle-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.6rem; font-size:13px; color:var(--text2); cursor:pointer; }
+  .fin-toggle-row input { cursor:pointer; }
 </style>
 </head>
 <body>
@@ -88,12 +86,8 @@
         <div class="field">
           <label>Période début</label>
           <div class="periode-toggle" id="toggle-debut">
-            <button class="periode-btn active" id="btn-debut-matin"    onclick="toggleDebut('Matin')">
-              <span class="check">✓</span> Matin
-            </button>
-            <button class="periode-btn active" id="btn-debut-apmidi"   onclick="toggleDebut('Après-midi')">
-              <span class="check">✓</span> Après-midi
-            </button>
+            <button class="periode-btn on" id="btn-debut-matin"  onclick="toggleDebut('Matin')">Matin</button>
+            <button class="periode-btn on" id="btn-debut-apmidi" onclick="toggleDebut('Après-midi')">Après-midi</button>
           </div>
           <input type="hidden" id="f-periode-debut" value="Journée" />
         </div>
@@ -115,12 +109,8 @@
           <div class="field">
             <label>Période fin</label>
             <div class="periode-toggle" id="toggle-fin">
-              <button class="periode-btn active" id="btn-fin-matin"    onclick="toggleFin('Matin')">
-                <span class="check">✓</span> Matin
-              </button>
-              <button class="periode-btn active" id="btn-fin-apmidi"   onclick="toggleFin('Après-midi')">
-                <span class="check">✓</span> Après-midi
-              </button>
+              <button class="periode-btn on" id="btn-fin-matin"  onclick="toggleFin('Matin')">Matin</button>
+              <button class="periode-btn on" id="btn-fin-apmidi" onclick="toggleFin('Après-midi')">Après-midi</button>
             </div>
             <input type="hidden" id="f-periode-fin" value="Journée" />
           </div>
@@ -244,124 +234,150 @@ function bootApp() {
   }
 }
 
-// ── Logique toggles matin/après-midi ─────────────────────────
-// État interne : matin et apmidi sont true/false
-const periodeState = {
+// ══════════════════════════════════════════════
+//  LOGIQUE PÉRIODES
+//  Règles de continuité :
+//  - Début sans après-midi → impossible de continuer (fin = même jour)
+//  - Fin sans matin → impossible (ça voudrait dire qu'on a raté le matin)
+//  En pratique :
+//  - Si début = Après-midi seulement → fin forcée au même jour, matin fin désactivé
+//  - Fin doit toujours avoir Matin coché (sinon c'est la veille qui était la fin)
+// ══════════════════════════════════════════════
+
+const PS = {
   debut: { matin: true, apmidi: true },
   fin:   { matin: true, apmidi: true },
 };
 
-function periodeFromState(state) {
-  if (state.matin && state.apmidi)  return "Journée";
-  if (state.matin)                  return "Matin";
-  if (state.apmidi)                 return "Après-midi";
-  return "Journée"; // fallback (ne devrait pas arriver)
+function periodeStr(s) {
+  if (s.matin && s.apmidi) return "Journée";
+  if (s.matin)             return "Matin";
+  return "Après-midi";
 }
 
-function renderDebutBtns() {
-  const s = periodeState.debut;
+// Rafraîchit l'affichage des boutons début + déclenche contraintes fin
+function syncDebut() {
+  const s  = PS.debut;
   const bm = document.getElementById("btn-debut-matin");
   const ba = document.getElementById("btn-debut-apmidi");
-  bm.classList.toggle("active", s.matin);
-  ba.classList.toggle("active", s.apmidi);
-  document.getElementById("f-periode-debut").value = periodeFromState(s);
-  // Mettre à jour les contraintes de fin
-  applyFinConstraints();
+  bm.className = "periode-btn " + (s.matin  ? "on" : "off");
+  ba.className = "periode-btn " + (s.apmidi ? "on" : "off");
+  document.getElementById("f-periode-debut").value = periodeStr(s);
+  applyConstraints();
   updateDayPreview();
 }
 
-function renderFinBtns() {
-  const s = periodeState.fin;
+// Rafraîchit l'affichage des boutons fin
+function syncFin() {
+  const s  = PS.fin;
   const bm = document.getElementById("btn-fin-matin");
   const ba = document.getElementById("btn-fin-apmidi");
-  bm.classList.toggle("active", s.matin);
-  ba.classList.toggle("active", s.apmidi);
-  document.getElementById("f-periode-fin").value = periodeFromState(s);
+  bm.className = "periode-btn " + (s.matin  ? "on" : "off");
+  ba.className = "periode-btn " + (s.apmidi ? "on" : "off");
+  document.getElementById("f-periode-fin").value = periodeStr(s);
   updateDayPreview();
+}
+
+// Applique les contraintes de continuité sur les boutons fin
+function applyConstraints() {
+  const sd   = PS.debut;
+  const sf   = PS.fin;
+  const bmFin = document.getElementById("btn-fin-matin");
+  const baFin = document.getElementById("btn-fin-apmidi");
+  const hasFin = document.getElementById("has-fin").checked;
+
+  // Règle 1 : si début = Après-midi seulement → pas de lendemain possible
+  //           → forcer fin au même jour + désactiver date de fin
+  if (!sd.matin && sd.apmidi) {
+    // Forcer fin = même jour, désactiver champ date fin
+    const debutVal = document.getElementById("f-debut").value;
+    document.getElementById("f-fin").value = debutVal;
+    document.getElementById("has-fin").checked = false;
+    document.getElementById("fin-fields").style.display = "none";
+    // Fin forcée à Après-midi
+    PS.fin = { matin: false, apmidi: true };
+    bmFin.disabled = true;
+    baFin.disabled = true;
+    syncFin();
+    return;
+  } else {
+    // Réactiver la possibilité d'avoir une fin différente
+    document.getElementById("has-fin").disabled = false;
+    if (hasFin) {
+      document.getElementById("fin-fields").style.display = "";
+    }
+    bmFin.disabled = false;
+    baFin.disabled = false;
+  }
+
+  // Règle 2 : fin doit toujours avoir Matin coché
+  //           → bouton Après-midi fin peut être décoché, Matin non
+  //           (si Matin fin est décoché, la vraie fin c'est la veille)
+  if (!sf.matin && sf.apmidi) {
+    // Corriger : impossible d'avoir fin = Après-midi seulement
+    PS.fin.matin = true;
+    syncFin();
+  }
+  // Désactiver le bouton Matin fin pour empêcher de le décocher seul
+  // (il peut être décoché seulement si apmidi reste, mais on interdit ça)
+  // → en fait on bloque juste la déselection si c'est le dernier
+  // (géré dans toggleFin)
 }
 
 function toggleDebut(half) {
-  const s = periodeState.debut;
+  const s = PS.debut;
   if (half === "Matin") {
-    // Ne pas désactiver si c'est le seul actif
-    if (s.matin && !s.apmidi) return;
+    if (s.matin && !s.apmidi) return; // seul actif
     s.matin = !s.matin;
   } else {
-    if (!s.matin && s.apmidi) return;
+    if (!s.matin && s.apmidi) return; // seul actif
     s.apmidi = !s.apmidi;
   }
-  renderDebutBtns();
+  syncDebut();
 }
 
 function toggleFin(half) {
-  const s = periodeState.fin;
-  const debut = periodeState.debut;
-  const debutStr = document.getElementById("f-debut").value;
-  const finStr   = document.getElementById("f-fin").value;
-  const sameDay  = debutStr && finStr && debutStr === finStr;
-
+  const s = PS.fin;
   if (half === "Matin") {
-    // Si même jour : matin fin ne peut être actif que si matin début est actif
-    if (!s.matin && sameDay && !debut.matin) return; // matin début éteint → pas de matin fin
-    if (s.matin && !s.apmidi) return; // dernier actif
+    // Matin fin ne peut jamais être décoché seul
+    // (règle : fin doit toujours avoir le matin)
+    if (s.matin && !s.apmidi) return; // seul actif, bloquer
+    if (s.matin && s.apmidi) {
+      // Décocher matin = fin = Après-midi seulement → interdit
+      return;
+    }
     s.matin = !s.matin;
   } else {
-    if (!s.matin && s.apmidi) return; // dernier actif
+    // Après-midi fin : libre de décocher (fin = Matin seulement = ok)
+    if (!s.matin && s.apmidi) return; // seul actif
     s.apmidi = !s.apmidi;
   }
-  renderFinBtns();
-}
-
-// Contraintes de continuité sur les boutons de fin
-function applyFinConstraints() {
-  const s    = periodeState.debut;
-  const finS = periodeState.fin;
-  const debutStr = document.getElementById("f-debut").value;
-  const finStr   = document.getElementById("f-fin").value;
-  const sameDay  = debutStr && finStr && debutStr === finStr;
-  const btnMatin = document.getElementById("btn-fin-matin");
-
-  // Si début = après-midi seulement → fin ne peut pas commencer le matin (autre jour)
-  // Si même jour et début = après-midi → fin matin impossible
-  if (!s.matin && s.apmidi) {
-    // Début est après-midi : fin matin impossible (pas continu)
-    btnMatin.disabled = true;
-    if (finS.matin) { finS.matin = false; if (!finS.apmidi) finS.apmidi = true; renderFinBtns(); }
-  } else {
-    btnMatin.disabled = false;
-  }
-
-  // Même jour : fin matin impossible si début = après-midi
-  if (sameDay && !s.matin) {
-    btnMatin.disabled = true;
-    if (finS.matin) { finS.matin = false; if (!finS.apmidi) finS.apmidi = true; renderFinBtns(); }
-  }
+  syncFin();
 }
 
 function onDebutChange() {
-  applyFinConstraints();
+  applyConstraints();
   updateDayPreview();
 }
 
-// Afficher/masquer la section fin
 function toggleFinSection() {
   const hasFin = document.getElementById("has-fin").checked;
-  const fields = document.getElementById("fin-fields");
-  fields.style.display = hasFin ? "" : "none";
+  document.getElementById("fin-fields").style.display = hasFin ? "" : "none";
   if (!hasFin) document.getElementById("f-fin").value = "";
   updateDayPreview();
 }
 
 function resetForm() {
-  document.getElementById("f-debut").value = "";
-  document.getElementById("f-fin").value   = "";
+  document.getElementById("f-debut").value   = "";
+  document.getElementById("f-fin").value     = "";
   document.getElementById("has-fin").checked = true;
+  document.getElementById("has-fin").disabled = false;
   document.getElementById("fin-fields").style.display = "";
-  document.getElementById("f-note").value  = "";
-  periodeState.debut = { matin: true, apmidi: true };
-  periodeState.fin   = { matin: true, apmidi: true };
-  renderDebutBtns();
-  renderFinBtns();
+  document.getElementById("f-note").value    = "";
+  PS.debut = { matin: true, apmidi: true };
+  PS.fin   = { matin: true, apmidi: true };
+  syncDebut();
+  syncFin();
   document.getElementById("preview-days").style.display = "none";
 }
 
