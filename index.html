@@ -29,8 +29,8 @@
   /* Layout date + boutons côte à côte */
   .date-periode-row { display:flex; align-items:flex-end; gap:12px; }
   .date-periode-row .field-date { flex:1; }
-  .field-periode { display:none; }
-  .field-periode.visible { display:block; min-width:180px; }
+  .field-periode { min-width:180px; opacity:0.15; pointer-events:none; transition:opacity .2s; }
+  .field-periode.visible { opacity:1; pointer-events:auto; }
 </style>
 </head>
 <body>
