@@ -14,19 +14,23 @@
   .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
   .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
   /* ── Toggles matin/après-midi ── */
-  .periode-wrap { display:flex; gap:6px; margin-top:4px; }
+  .periode-wrap { display:flex; gap:6px; }
   .pbtn {
-    flex:1; padding:.45rem .5rem;
+    flex:1; padding:.45rem .6rem;
     border:1.5px solid var(--border); border-radius:var(--radius);
-    background:var(--bg); color:var(--text2);
+    background:var(--bg2); color:var(--text2);
     font-size:13px; font-weight:500; cursor:pointer;
     transition:background .15s, border-color .15s, color .15s;
     text-align:center; user-select:none; line-height:1.4;
   }
-  .pbtn.on  { border-color:var(--primary); background:var(--primary); color:#fff; }
-  .pbtn.off { border-color:var(--border);  background:var(--bg2);     color:var(--text3); text-decoration:line-through; }
-  .pbtn:disabled { opacity:.35; cursor:not-allowed; }
+  .pbtn.on  { border-color:#2563EB; background:#2563EB; color:#fff; }
+  .pbtn.err { border-color:#DC2626; background:#FEE2E2; color:#DC2626; }
   .periode-hint { font-size:12px; color:var(--text3); margin-top:4px; min-height:16px; }
+  /* Layout date + boutons côte à côte */
+  .date-periode-row { display:flex; align-items:flex-end; gap:12px; }
+  .date-periode-row .field-date { flex:1; }
+  .field-periode { display:none; }
+  .field-periode.visible { display:block; min-width:180px; }
 </style>
 </head>
 <body>
@@ -76,13 +80,16 @@
       </div>
 
       <!-- Début -->
-      <div class="field">
-        <label>Date de début *</label>
-        <input type="date" id="f-debut" oninput="onDebutChange()" />
-        <div id="toggle-debut" style="display:none; margin-top:8px;">
+      <div class="date-periode-row">
+        <div class="field field-date">
+          <label>Date de début *</label>
+          <input type="date" id="f-debut" oninput="onDebutChange()" />
+        </div>
+        <div class="field-periode" id="toggle-debut">
+          <label>Période début</label>
           <div class="periode-wrap">
-            <button class="pbtn on" id="btn-debut-matin"  onclick="toggleDebut('Matin')">🌅 Matin</button>
-            <button class="pbtn on" id="btn-debut-apmidi" onclick="toggleDebut('Après-midi')">🌆 Après-midi</button>
+            <button class="pbtn on" id="btn-debut-matin"  onclick="toggleDebut('Matin')">Matin</button>
+            <button class="pbtn on" id="btn-debut-apmidi" onclick="toggleDebut('Après-midi')">Après-midi</button>
           </div>
           <div class="periode-hint" id="hint-debut"></div>
         </div>
@@ -91,13 +98,16 @@
 
       <!-- Fin (optionnelle) -->
       <div id="fin-section" style="display:none;">
-        <div class="field">
-          <label>Date de fin <span style="color:var(--text3);font-weight:400">(laisser vide = même jour)</span></label>
-          <input type="date" id="f-fin" oninput="onFinChange()" />
-          <div id="toggle-fin" style="display:none; margin-top:8px;">
+        <div class="date-periode-row">
+          <div class="field field-date">
+            <label>Date de fin <span style="color:var(--text3);font-weight:400">(optionnelle)</span></label>
+            <input type="date" id="f-fin" oninput="onFinChange()" />
+          </div>
+          <div class="field-periode" id="toggle-fin">
+            <label>Période fin</label>
             <div class="periode-wrap">
-              <button class="pbtn on" id="btn-fin-matin"  onclick="toggleFin('Matin')">🌅 Matin</button>
-              <button class="pbtn on" id="btn-fin-apmidi" onclick="toggleFin('Après-midi')">🌆 Après-midi</button>
+              <button class="pbtn on" id="btn-fin-matin"  onclick="toggleFin('Matin')">Matin</button>
+              <button class="pbtn on" id="btn-fin-apmidi" onclick="toggleFin('Après-midi')">Après-midi</button>
             </div>
             <div class="periode-hint" id="hint-fin"></div>
           </div>
