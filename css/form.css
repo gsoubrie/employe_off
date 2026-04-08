@@ -1,0 +1,109 @@
+/* ============================================================
+   FORMULAIRE DE SAISIE — form.css
+   ============================================================ */
+
+/* ── Layout login ── */
+#login-wall {
+  display: none;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg2);
+}
+#login-wall.visible { display: flex; }
+
+.login-card {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  width: min(380px, 92vw);
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0,0,0,.08);
+}
+.login-card h2   { margin: 0 0 .5rem; font-size: 1.25rem; }
+.login-card p    { color: var(--text2); font-size: 14px; margin: 0 0 1.5rem; }
+.login-icon      { font-size: 2.5rem; margin-bottom: 1rem; }
+
+/* ── Header user badge ── */
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ── Ligne date + boutons période côte à côte ── */
+.date-periode-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+.date-periode-row .field-date {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ── Bloc période (boutons Matin / Après-midi) ── */
+.field-periode {
+  min-width: 190px;
+  opacity: 0.15;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+.field-periode.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.field-periode label {
+  display: block;
+  margin-bottom: .35rem;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.periode-wrap {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Bouton toggle période ── */
+.pbtn {
+  flex: 1;
+  padding: .45rem .5rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.pbtn.on {
+  border-color: #2563EB;
+  background: #2563EB;
+  color: #fff;
+}
+.pbtn.off {
+  border-color: var(--border);
+  background: var(--bg2);
+  color: var(--text3);
+  text-decoration: line-through;
+}
+.pbtn.err {
+  border-color: #DC2626;
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* ── Message d'erreur continuité ── */
+.periode-error {
+  font-size: 12px;
+  color: #DC2626;
+  margin-top: 4px;
+  min-height: 16px;
+}

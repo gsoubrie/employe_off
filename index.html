@@ -1,40 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Congés Équipe</title>
-<link rel="stylesheet" href="css/style.css" />
-<style>
-  #login-wall { display:none; min-height:100vh; align-items:center; justify-content:center; background:var(--bg2); }
-  #login-wall.visible { display:flex; }
-  .login-card { background:var(--bg); border-radius:var(--radius-lg); padding:2.5rem 2rem; width:min(380px,92vw); text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.08); }
-  .login-card h2 { margin:0 0 .5rem; font-size:1.25rem; }
-  .login-card p  { color:var(--text2); font-size:14px; margin:0 0 1.5rem; }
-  .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
-  .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
-  /* ── Toggles matin/après-midi ── */
-  .periode-wrap { display:flex; gap:6px; }
-  .pbtn {
-    flex:1; padding:.45rem .6rem;
-    border:1.5px solid var(--border); border-radius:var(--radius);
-    background:var(--bg2); color:var(--text2);
-    font-size:13px; font-weight:500; cursor:pointer;
-    transition:background .15s, border-color .15s, color .15s;
-    text-align:center; user-select:none; line-height:1.4;
-  }
-  .pbtn.on  { border-color:#2563EB; background:#2563EB; color:#fff; }
-  .pbtn.err { border-color:#DC2626; background:#FEE2E2; color:#DC2626; }
-  .periode-hint { font-size:12px; color:var(--text3); margin-top:4px; min-height:16px; }
-  /* Layout date + boutons côte à côte */
-  .date-periode-row { display:flex; align-items:flex-end; gap:12px; }
-  .date-periode-row .field-date { flex:1; }
-  .field-periode { min-width:180px; opacity:0.15; pointer-events:none; transition:opacity .2s; }
-  .field-periode.visible { opacity:1; pointer-events:auto; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Congés Équipe</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/form.css" />
 </head>
 <body>
 
+<!-- ═══════════════ LOGIN WALL ═══════════════ -->
 <div id="login-wall">
   <div class="login-card">
     <div class="login-icon">🔒</div>
@@ -43,6 +18,7 @@
   </div>
 </div>
 
+<!-- ═══════════════ APP ═══════════════ -->
 <div id="app" style="display:none">
 <div class="container">
 
@@ -73,43 +49,42 @@
   <!-- ═══ SAISIE ═══ -->
   <div id="tab-saisie" class="section active">
     <div class="card">
+
       <div class="field">
         <label>Employé</label>
         <div id="f-employee-display" style="padding:.55rem .75rem;background:var(--bg2);border-radius:var(--radius);font-weight:500"></div>
         <input type="hidden" id="f-employee" />
       </div>
 
-      <!-- Début -->
       <div class="date-periode-row">
         <div class="field field-date">
           <label>Date de début *</label>
-          <input type="date" id="f-debut" oninput="onDebutChange()" />
+          <input type="date" id="f-debut" onchange="PeriodeForm.onDebutChange()" />
         </div>
         <div class="field-periode" id="toggle-debut">
           <label>Période début</label>
           <div class="periode-wrap">
-            <button class="pbtn on" id="btn-debut-matin"  onclick="toggleDebut('Matin')">Matin</button>
-            <button class="pbtn on" id="btn-debut-apmidi" onclick="toggleDebut('Après-midi')">Après-midi</button>
+            <button class="pbtn on" id="btn-debut-matin"  onclick="PeriodeForm.toggleDebut('Matin')">Matin</button>
+            <button class="pbtn on" id="btn-debut-apmidi" onclick="PeriodeForm.toggleDebut('Après-midi')">Après-midi</button>
           </div>
-          <div class="periode-hint" id="hint-debut"></div>
+          <div class="periode-error" id="hint-debut"></div>
         </div>
         <input type="hidden" id="f-periode-debut" value="Journée" />
       </div>
 
-      <!-- Fin (optionnelle) -->
-      <div id="fin-section" style="display:none;">
+      <div id="fin-section" style="display:none">
         <div class="date-periode-row">
           <div class="field field-date">
             <label>Date de fin <span style="color:var(--text3);font-weight:400">(optionnelle)</span></label>
-            <input type="date" id="f-fin" oninput="onFinChange()" />
+            <input type="date" id="f-fin" onchange="PeriodeForm.onFinChange()" />
           </div>
           <div class="field-periode" id="toggle-fin">
             <label>Période fin</label>
             <div class="periode-wrap">
-              <button class="pbtn on" id="btn-fin-matin"  onclick="toggleFin('Matin')">Matin</button>
-              <button class="pbtn on" id="btn-fin-apmidi" onclick="toggleFin('Après-midi')">Après-midi</button>
+              <button class="pbtn on" id="btn-fin-matin"  onclick="PeriodeForm.toggleFin('Matin')">Matin</button>
+              <button class="pbtn on" id="btn-fin-apmidi" onclick="PeriodeForm.toggleFin('Après-midi')">Après-midi</button>
             </div>
-            <div class="periode-hint" id="hint-fin"></div>
+            <div class="periode-error" id="hint-fin"></div>
           </div>
           <input type="hidden" id="f-periode-fin" value="Journée" />
         </div>
@@ -126,8 +101,9 @@
         <textarea id="f-note" rows="2" placeholder="Informations complémentaires..."></textarea>
       </div>
       <div class="btn-row">
-        <button class="btn primary" onclick="handleSubmit()">Soumettre la demande</button>
+        <button class="btn primary" id="btn-submit" onclick="handleSubmit()">Soumettre la demande</button>
       </div>
+
     </div>
   </div>
 
@@ -144,20 +120,27 @@
       </div>
       <div id="cal-legend" class="cal-legend"></div>
       <div class="cal-grid" id="cal-grid">
-        <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div>
-        <div class="cal-day-name">Mer</div><div class="cal-day-name">Jeu</div>
-        <div class="cal-day-name">Ven</div><div class="cal-day-name">Sam</div>
+        <div class="cal-day-name">Lun</div>
+        <div class="cal-day-name">Mar</div>
+        <div class="cal-day-name">Mer</div>
+        <div class="cal-day-name">Jeu</div>
+        <div class="cal-day-name">Ven</div>
+        <div class="cal-day-name">Sam</div>
         <div class="cal-day-name">Dim</div>
       </div>
     </div>
-    <p style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center">Seuls les congés approuvés apparaissent.</p>
+    <p style="font-size:12px;color:var(--text3);margin-top:.5rem;text-align:center">
+      Seuls les congés approuvés apparaissent.
+    </p>
   </div>
 
   <!-- ═══ MES CONGÉS ═══ -->
   <div id="tab-liste" class="section">
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
-      <div id="leaves-list"><div class="loading-state"><div class="spinner"></div></div></div>
+      <div id="leaves-list">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
     </div>
   </div>
 
@@ -174,278 +157,8 @@
 <script src="js/users.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/leaves.js"></script>
+<script src="js/form.js"></script>
+<script src="js/app.js"></script>
 
-<script>
-let currentEmployee = null;
-let allLeaves = [];
-let cal;
-
-// ── Auth ──────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  const urlToken = new URLSearchParams(window.location.search).get("token");
-  const token    = urlToken || (() => { try { return sessionStorage.getItem("conges_token"); } catch(e){} })();
-
-  if (!token) { showLoginWall(); return; }
-  const employee = getEmployeeByToken(token);
-  if (!employee) { showLoginWall(); return; }
-
-  try { sessionStorage.setItem("conges_token", token); } catch(e){}
-  if (urlToken) {
-    const u = new URL(window.location.href);
-    u.searchParams.delete("token");
-    window.history.replaceState({}, "", u.toString());
-  }
-
-  currentEmployee = employee;
-  bootApp();
-});
-
-function showLoginWall() {
-  document.getElementById("login-wall").classList.add("visible");
-}
-
-function bootApp() {
-  document.getElementById("app").style.display = "block";
-  document.getElementById("f-employee").value = currentEmployee.id;
-  document.getElementById("f-employee-display").textContent = fullName(currentEmployee);
-  document.getElementById("user-name-header").textContent   = fullName(currentEmployee);
-  document.getElementById("user-avatar-header").innerHTML   = avatarHTML(currentEmployee);
-
-  if (isManager(currentEmployee.id)) {
-    const lnk = document.getElementById("manager-link");
-    lnk.style.display = "inline-flex";
-    try { lnk.href = "manager.html?token=" + sessionStorage.getItem("conges_token"); } catch(e){}
-  }
-
-  initFirebase();
-  checkFirebaseBanner();
-  populateLeaveTypeSelect("f-type");
-  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
-
-  if (isFirebaseConfigured()) {
-    listenLeaves([], (leaves) => {
-      allLeaves = leaves;
-      cal.setLeaves(leaves);
-      renderMyLeaves();
-      renderStats();
-    });
-  }
-}
-
-// ══════════════════════════════════════════════
-//  LOGIQUE PÉRIODES
-//  Règles :
-//  - Boutons apparaissent seulement si la date est saisie
-//  - Début sans après-midi → fin forcée au même jour (pas de lendemain)
-//  - Fin : Matin toujours coché (sinon c'est la veille qui finit)
-//          Après-midi peut être décoché = fin à la mi-journée
-//  - Date de fin ne peut pas être avant la date de début
-// ══════════════════════════════════════════════
-
-const PS = {
-  debut: { matin: true, apmidi: true },
-  fin:   { matin: true, apmidi: true },
-};
-
-function periodeStr(s) {
-  if (s.matin && s.apmidi) return "Journée";
-  if (s.matin)             return "Matin";
-  return "Après-midi"; // ne devrait pas arriver pour la fin
-}
-
-const HINTS = {
-  "Journée":    "Journée entière",
-  "Matin":      "Matin seulement (demi-journée)",
-  "Après-midi": "Après-midi seulement (demi-journée)",
-};
-
-function syncDebut() {
-  const s  = PS.debut;
-  document.getElementById("btn-debut-matin").className  = "pbtn " + (s.matin  ? "on" : "off");
-  document.getElementById("btn-debut-apmidi").className = "pbtn " + (s.apmidi ? "on" : "off");
-  const val = periodeStr(s);
-  document.getElementById("f-periode-debut").value = val;
-  document.getElementById("hint-debut").textContent = HINTS[val] || "";
-  applyConstraints();
-  updateDayPreview();
-}
-
-function syncFin() {
-  const s  = PS.fin;
-  document.getElementById("btn-fin-matin").className  = "pbtn " + (s.matin  ? "on" : "off");
-  document.getElementById("btn-fin-apmidi").className = "pbtn " + (s.apmidi ? "on" : "off");
-  const val = periodeStr(s);
-  document.getElementById("f-periode-fin").value = val;
-  document.getElementById("hint-fin").textContent = HINTS[val] || "";
-  updateDayPreview();
-}
-
-function applyConstraints() {
-  const debutApmidiOnly = !PS.debut.matin && PS.debut.apmidi;
-  const finSection = document.getElementById("fin-section");
-
-  if (debutApmidiOnly) {
-    // Pas de lendemain possible → cacher la section fin
-    finSection.style.display = "none";
-    document.getElementById("f-fin").value = "";
-    document.getElementById("toggle-fin").style.display = "none";
-  } else {
-    // Section fin visible si date début saisie
-    if (document.getElementById("f-debut").value) {
-      finSection.style.display = "";
-    }
-    // Réactiver bouton après-midi fin si besoin
-    document.getElementById("btn-fin-apmidi").disabled = false;
-  }
-}
-
-function toggleDebut(half) {
-  const s = PS.debut;
-  if (half === "Matin") {
-    if (s.matin && !s.apmidi) return; // dernier actif
-    s.matin = !s.matin;
-  } else {
-    if (!s.matin && s.apmidi) return; // dernier actif
-    s.apmidi = !s.apmidi;
-  }
-  syncDebut();
-}
-
-function toggleFin(half) {
-  const s = PS.fin;
-  if (half === "Matin") {
-    // Matin fin = toujours obligatoire → ne peut pas être décoché
-    return;
-  } else {
-    // Après-midi : peut être décoché (fin = Matin = demi-journée)
-    if (!s.matin && s.apmidi) return; // dernier actif (ne devrait pas arriver)
-    s.apmidi = !s.apmidi;
-  }
-  syncFin();
-}
-
-function onDebutChange() {
-  const debutVal = document.getElementById("f-debut").value;
-  if (debutVal) {
-    document.getElementById("toggle-debut").style.display = "";
-    // Synchroniser la date min de fin
-    document.getElementById("f-fin").min = debutVal;
-    // Si la date de fin est avant le début, la réinitialiser
-    const finVal = document.getElementById("f-fin").value;
-    if (finVal && finVal < debutVal) {
-      document.getElementById("f-fin").value = "";
-      document.getElementById("toggle-fin").style.display = "none";
-    }
-    applyConstraints();
-  } else {
-    document.getElementById("toggle-debut").style.display = "none";
-    document.getElementById("fin-section").style.display  = "none";
-  }
-  updateDayPreview();
-}
-
-function onFinChange() {
-  const finVal   = document.getElementById("f-fin").value;
-  const debutVal = document.getElementById("f-debut").value;
-  if (finVal && finVal >= debutVal) {
-    document.getElementById("toggle-fin").style.display = "";
-    // Même jour : bloquer après-midi fin si début = matin seulement
-    // (déjà géré par continuité : si même jour et début=Matin → fin peut être Matin ou Journée)
-  } else {
-    document.getElementById("toggle-fin").style.display = "none";
-  }
-  updateDayPreview();
-}
-
-function resetForm() {
-  document.getElementById("f-debut").value = "";
-  document.getElementById("f-fin").value   = "";
-  document.getElementById("f-note").value  = "";
-  document.getElementById("toggle-debut").style.display = "none";
-  document.getElementById("toggle-fin").style.display   = "none";
-  document.getElementById("fin-section").style.display  = "none";
-  PS.debut = { matin: true, apmidi: true };
-  PS.fin   = { matin: true, apmidi: true };
-  syncDebut();
-  syncFin();
-  document.getElementById("preview-days").style.display = "none";
-}
-
-// ── Navigation ────────────────────────────────────────────────
-function switchTab(t) {
-  document.querySelectorAll(".tab").forEach((el, i) =>
-    el.classList.toggle("active", ["saisie","calendrier","liste"][i] === t));
-  document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
-  document.getElementById("tab-" + t).classList.add("active");
-  if (t === "calendrier") cal.render();
-}
-
-// ── Aperçu jours ─────────────────────────────────────────────
-function updateDayPreview() {
-  const debut = document.getElementById("f-debut").value;
-  const finV  = document.getElementById("f-fin").value;
-  const fin   = (finV && finV >= debut) ? finV : debut;
-  const pd    = document.getElementById("f-periode-debut").value;
-  const pf    = (finV && finV >= debut) ? document.getElementById("f-periode-fin").value : pd;
-  const box   = document.getElementById("preview-days");
-  if (!debut) { box.style.display = "none"; return; }
-  const nb = calculateDays(debut, fin, pd, pf);
-  box.style.display = "block";
-  box.innerHTML = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
-}
-
-// ── Soumission ────────────────────────────────────────────────
-async function handleSubmit() {
-  const btn = document.querySelector('[onclick="handleSubmit()"]');
-  btn.disabled = true; btn.textContent = "Envoi...";
-  try {
-    const debut  = document.getElementById("f-debut").value;
-    const finV   = document.getElementById("f-fin").value;
-    const fin    = (finV && finV >= debut) ? finV : debut;
-    const pd     = document.getElementById("f-periode-debut").value;
-    const pf     = (finV && finV >= debut) ? document.getElementById("f-periode-fin").value : pd;
-    await submitLeave({
-      employeeId:   currentEmployee.id,
-      debut, fin,
-      periodeDebut: pd,
-      periodeFin:   pf,
-      typeId:       document.getElementById("f-type").value,
-      note:         document.getElementById("f-note").value,
-    });
-    showToast("Demande soumise — mail envoyé aux managers !");
-    resetForm();
-  } catch (err) {
-    showToast(err.message, "error");
-  } finally {
-    btn.disabled = false; btn.textContent = "Soumettre la demande";
-  }
-}
-
-// ── Mes congés ────────────────────────────────────────────────
-function renderMyLeaves() {
-  const mine = allLeaves
-    .filter((l) => l.employeeId === currentEmployee.id)
-    .sort((a, b) => b.debut.localeCompare(a.debut));
-  const el = document.getElementById("leaves-list");
-  if (!mine.length) { el.innerHTML = '<div class="empty">Aucun congé enregistré</div>'; return; }
-  el.innerHTML = mine.map((l) => renderLeaveItem(l, { onDelete: "handleDelete" })).join("");
-}
-
-async function handleDelete(id) {
-  if (!confirm("Supprimer ce congé ?")) return;
-  try { await fsDelete("conges", id); showToast("Congé supprimé"); }
-  catch (e) { showToast("Erreur lors de la suppression", "error"); }
-}
-
-function renderStats() {
-  const mine = allLeaves.filter((l) => l.employeeId === currentEmployee.id);
-  const s = computeStats(mine);
-  document.getElementById("stats-grid").innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${s.total}</div></div>
-    <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--amber)">${s.pending}</div></div>
-    <div class="stat-card"><div class="stat-label">Approuvés</div><div class="stat-value" style="color:var(--green)">${s.approved}</div></div>
-    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>`;
-}
-</script>
 </body>
 </html>
