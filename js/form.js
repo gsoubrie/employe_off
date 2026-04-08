@@ -88,11 +88,14 @@ const PeriodeForm = (() => {
 
   // ── Section fin : visible si début saisi et continuité ok ─
   function updateFinSection() {
-    const dVal         = el("f-debut").value;
-    const debutApmidi  = !state.debut.matin && state.debut.apmidi;
+    const dVal = el("f-debut").value;
+    // Cacher la fin uniquement si début = Après-midi seulement
+    // (pas de lendemain possible car il faudrait un trou)
+    const debutApmidiOnly = !state.debut.matin && state.debut.apmidi;
 
-    if (!dVal || debutApmidi) {
-      // Cacher la fin si pas de début ou si début = après-midi seulement
+    if (!dVal) {
+      el("fin-section").style.display = "none";
+    } else if (debutApmidiOnly) {
       el("fin-section").style.display = "none";
       el("f-fin").value = "";
       state.fin = { matin: true, apmidi: true };

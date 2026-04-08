@@ -36,7 +36,7 @@
 /* ── Ligne date + boutons période côte à côte ── */
 .date-periode-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
   margin-bottom: 1rem;
 }
@@ -51,16 +51,17 @@
   opacity: 0.15;
   pointer-events: none;
   transition: opacity .25s;
+  /* Hauteur fixe pour éviter tout décalage */
+  display: flex;
+  align-items: center;
 }
 .field-periode.active {
   opacity: 1;
   pointer-events: auto;
 }
+/* Supprimer le label Période début / fin */
 .field-periode label {
-  display: block;
-  margin-bottom: .35rem;
-  font-size: 13px;
-  color: var(--text2);
+  display: none;
 }
 
 .periode-wrap {
@@ -101,9 +102,16 @@
 }
 
 /* ── Message d'erreur continuité ── */
+/* Positionné en absolu pour ne pas décaler les boutons */
+.periode-wrap-container {
+  position: relative;
+}
 .periode-error {
-  font-size: 12px;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  font-size: 11px;
   color: #DC2626;
-  margin-top: 4px;
-  min-height: 16px;
+  white-space: nowrap;
 }
