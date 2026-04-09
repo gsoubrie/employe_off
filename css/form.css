@@ -36,7 +36,7 @@
 /* ── Ligne date + boutons période côte à côte ── */
 .date-periode-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   margin-bottom: 1rem;
 }
@@ -51,9 +51,7 @@
   opacity: 0.15;
   pointer-events: none;
   transition: opacity .25s;
-  /* Hauteur fixe pour éviter tout décalage */
-  display: flex;
-  align-items: center;
+  padding-bottom: 1px; /* aligne visuellement avec le bas de l'input */
 }
 .field-periode.active {
   opacity: 1;
