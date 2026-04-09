@@ -92,6 +92,19 @@ const PeriodeForm = (() => {
   function updateFinSection() {
     const dVal = el("f-debut").value;
     el("fin-section").style.display = dVal ? "" : "none";
+    
+    const hidden_end = state.debut.matin && !state.debut.apmidi;
+
+    if (!dVal) {
+      el("fin-section").style.display = "none";
+    } else if (hidden_end) {
+      el("fin-section").style.display = "none";
+      el("f-fin").value = "";
+      state.fin = { matin: true, apmidi: true };
+      renderFin();
+    } else {
+      el("fin-section").style.display = "";
+    }
   }
 
   // ── Preview du nombre de jours ────────────────────────────
