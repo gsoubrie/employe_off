@@ -86,23 +86,12 @@ const PeriodeForm = (() => {
     return errors;
   }
 
-  // ── Section fin : visible si début saisi et continuité ok ─
+  // ── Section fin : visible dès que la date début est saisie ──
+  // On ne cache JAMAIS la fin — on affiche juste une erreur rouge
+  // si la combinaison crée un trou de continuité.
   function updateFinSection() {
     const dVal = el("f-debut").value;
-    // Cacher la fin uniquement si début = Après-midi seulement
-    // (pas de lendemain possible car il faudrait un trou)
-    const debutApmidiOnly = !state.debut.matin && state.debut.apmidi;
-
-    if (!dVal) {
-      el("fin-section").style.display = "none";
-    } else if (debutApmidiOnly) {
-      el("fin-section").style.display = "none";
-      el("f-fin").value = "";
-      state.fin = { matin: true, apmidi: true };
-      renderFin();
-    } else {
-      el("fin-section").style.display = "";
-    }
+    el("fin-section").style.display = dVal ? "" : "none";
   }
 
   // ── Preview du nombre de jours ────────────────────────────
