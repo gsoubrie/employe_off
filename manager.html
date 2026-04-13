@@ -196,7 +196,7 @@ function renderPending() {
   const el = document.getElementById("pending-list");
   if (!pending.length) { el.innerHTML = '<div class="empty">Aucune demande en attente ✓</div>'; return; }
   el.innerHTML = pending.map((l) =>
-    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal" })
+    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal", onDelete:"handleDelete" })
   ).join("");
 }
 
@@ -204,7 +204,7 @@ function renderAllList() {
   const el = document.getElementById("all-list");
   if (!allLeaves.length) { el.innerHTML = '<div class="empty">Aucun congé enregistré</div>'; return; }
   el.innerHTML = allLeaves.map((l) =>
-    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal" })
+    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal", onDelete:"handleDelete" })
   ).join("");
 }
 
@@ -223,6 +223,16 @@ async function handleApprove(id) {
     await updateLeaveStatus(id, "approved");
     showToast("Congé approuvé");
     sendStatusEmail(id, "approved");
+  } catch (e) { showToast("Erreur : " + e.message, "error"); }
+}
+
+async function handleDelete(id) {
+  const leave = allLeaves.find((l) => l.id === id);
+  const name  = leave ? leave.employeeName : "";
+  if (!confirm(`Supprimer définitivement le congé de ${name} ?`)) return;
+  try {
+    await fsDelete("conges", id);
+    showToast("Congé supprimé");
   } catch (e) { showToast("Erreur : " + e.message, "error"); }
 }
 
