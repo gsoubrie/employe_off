@@ -249,3 +249,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+
+/* Week-ends grisés */
+.cal-cell:nth-child(7n + 6),  /* Samedi */
+.cal-cell:nth-child(7n + 7) { /* Dimanche */
+    background: #F3F4F6;
+}
+
+/* Si le jour férié et week-end se cumulent, le férié prend le dessus */
+.cal-cell.cal-ferie:nth-child(7n + 6),
+.cal-cell.cal-ferie:nth-child(7n + 7) {
+    background: #FEF3C7;
+}
