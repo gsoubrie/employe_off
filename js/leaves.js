@@ -8,49 +8,81 @@
 const COLLECTION           = "conges";
 const PAYFIT_SUBJECT_TYPES = ["CP", "MALADIE", "FAMILLE", "AUTRE"];
 
-// ── Jours fériés français ─────────────────────────────────────
-function getFeriesForYear ( year ) {
-    function easterSunday ( y ) {
-        const a     = y % 19,
-              b     = Math.floor( y / 100 ),
-              c     = y % 100;
-        const d     = Math.floor( b / 4 ),
-              e     = b % 4;
-        const f     = Math.floor( (b + 8) / 25 );
-        const g     = Math.floor( (b - f + 1) / 3 );
-        const h     = (19 * a + b - d - g + 15) % 30;
-        const i     = Math.floor( c / 4 ),
-              k     = c % 4;
-        const l     = (32 + 2 * e + 2 * i - h - k) % 7;
-        const m     = Math.floor( (a + 11 * h + 22 * l) / 451 );
-        const month = Math.floor( (h + l - 7 * m + 114) / 31 );
-        const day   = ((h + l - 7 * m + 114) % 31) + 1;
-        return new Date( y, month - 1, day );
-    }
-    
-    const paques  = easterSunday( year );
-    const addDays = ( d, n ) => new Date( d.getFullYear(), d.getMonth(), d.getDate() + n );
-    const fmt     = ( d ) => d.toISOString().slice( 0, 10 );
-    return new Set( [
-        `${year}-01-01`, `${year}-05-01`, `${year}-05-08`,
-        `${year}-07-14`, `${year}-08-15`, `${year}-11-01`,
-        `${year}-11-11`, `${year}-12-25`,
-        fmt( paques ),               // Dimanche de Pâques
-        fmt( addDays( paques, 1 ) ),  // Lundi de Pâques
-        fmt( addDays( paques, 39 ) )  // Ascension
-        // Lundi de Pentecôte travaillé chez Shinken — non inclus
-    ] );
-}
 
-const _feriesCache = {};
+// ── Jours fériés français 2024-2029 (dates fixes) ─────────────
+const FERIES = new Set( [
+    // 2024
+    "2024-01-01", // Jour de l'an
+    "2024-04-01", // Lundi de Pâques
+    "2024-05-01", // Fête du Travail
+    "2024-05-08", // Victoire 1945
+    "2024-05-09", // Ascension
+    "2024-07-14", // Fête Nationale
+    "2024-08-15", // Assomption
+    "2024-11-01", // Toussaint
+    "2024-11-11", // Armistice
+    "2024-12-25", // Noël
+    // 2025
+    "2025-01-01", // Jour de l'an
+    "2025-04-21", // Lundi de Pâques
+    "2025-05-01", // Fête du Travail
+    "2025-05-08", // Victoire 1945
+    "2025-05-29", // Ascension
+    "2025-07-14", // Fête Nationale
+    "2025-08-15", // Assomption
+    "2025-11-01", // Toussaint
+    "2025-11-11", // Armistice
+    "2025-12-25", // Noël
+    // 2026
+    "2026-01-01", // Jour de l'an
+    "2026-04-06", // Lundi de Pâques
+    "2026-05-01", // Fête du Travail
+    "2026-05-08", // Victoire 1945
+    "2026-05-14", // Ascension
+    "2026-07-14", // Fête Nationale
+    "2026-08-15", // Assomption
+    "2026-11-01", // Toussaint
+    "2026-11-11", // Armistice
+    "2026-12-25", // Noël
+    // 2027
+    "2027-01-01", // Jour de l'an
+    "2027-03-29", // Lundi de Pâques
+    "2027-05-01", // Fête du Travail
+    "2027-05-06", // Ascension
+    "2027-05-08", // Victoire 1945
+    "2027-07-14", // Fête Nationale
+    "2027-08-15", // Assomption
+    "2027-11-01", // Toussaint
+    "2027-11-11", // Armistice
+    "2027-12-25", // Noël
+    // 2028
+    "2028-01-01", // Jour de l'an
+    "2028-04-17", // Lundi de Pâques
+    "2028-05-01", // Fête du Travail
+    "2028-05-08", // Victoire 1945
+    "2028-05-25", // Ascension
+    "2028-07-14", // Fête Nationale
+    "2028-08-15", // Assomption
+    "2028-11-01", // Toussaint
+    "2028-11-11", // Armistice
+    "2028-12-25", // Noël
+    // 2029
+    "2029-01-01", // Jour de l'an
+    "2029-04-02", // Lundi de Pâques
+    "2029-05-01", // Fête du Travail
+    "2029-05-08", // Victoire 1945
+    "2029-05-10", // Ascension
+    "2029-07-14", // Fête Nationale
+    "2029-08-15", // Assomption
+    "2029-11-01", // Toussaint
+    "2029-11-11", // Armistice
+    "2029-12-25"  // Noël
+] );
 
 function isFerie ( dateStr ) {
-    const year = parseInt( dateStr.slice( 0, 4 ) );
-    if ( !_feriesCache[ year ] ) {
-        _feriesCache[ year ] = getFeriesForYear( year );
-    }
-    return _feriesCache[ year ].has( dateStr );
+    return FERIES.has( dateStr );
 }
+
 
 // ── Calcul du nombre de jours ─────────────────────────────────
 // Journée = 1j, Matin = 0.5j, Après-midi = 0.5j
