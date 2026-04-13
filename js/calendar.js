@@ -174,9 +174,18 @@ class LeaveCalendar {
                 cell.classList.add( "today" );
             }
             
-            const dateStr     = `${y2}-${String( m2 + 1 ).padStart( 2, "0" )}-${String( d ).padStart( 2, "0" )}`;
-            cell.innerHTML    = `<div class="cal-num">${d}</div>`;
+            const dateStr = `${y2}-${String( m2 + 1 ).padStart( 2, "0" )}-${String( d ).padStart( 2, "0" )}`;
+
+            const ferieTag = isFerie( dateStr )
+                ? `<span class="cal-ferie-tag">Férié</span>`
+                : "";
+
+            cell.innerHTML    = `<div class="cal-num">${d}${ferieTag}</div>`;
             cell.dataset.date = dateStr;
+
+            if ( isFerie( dateStr ) ) {
+                cell.classList.add( "cal-ferie" );
+            }
             
             cells.push( { cell, dateStr, colIndex: i % 7 } );
             grid.appendChild( cell );
