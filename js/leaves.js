@@ -35,6 +35,7 @@ function getFeriesForYear ( year ) {
         `${year}-01-01`, `${year}-05-01`, `${year}-05-08`,
         `${year}-07-14`, `${year}-08-15`, `${year}-11-01`,
         `${year}-11-11`, `${year}-12-25`,
+        fmt( paques ),               // Dimanche de Pâques
         fmt( addDays( paques, 1 ) ),  // Lundi de Pâques
         fmt( addDays( paques, 39 ) )  // Ascension
         // Lundi de Pentecôte travaillé chez Shinken — non inclus
