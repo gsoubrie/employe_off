@@ -2,6 +2,7 @@
 //  APP.JS — Logique principale index.html
 //  Auth token, navigation, soumission, liste, stats
 // ============================================================
+/* jshint esversion: 6 */
 
 let currentEmployee = null;
 let allLeaves       = [];

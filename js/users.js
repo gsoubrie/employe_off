@@ -2,7 +2,7 @@
 //  COMPOSANT UTILISATEURS
 //  Gère l'affichage des sélecteurs d'employés et les helpers UI
 // ============================================================
-
+/* jshint esversion: 6 */
 const AVATAR_COLORS = [
   { bg: "#E1F5EE", text: "#0F6E56" },
   { bg: "#E6F1FB", text: "#185FA5" },

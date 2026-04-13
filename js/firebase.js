@@ -5,6 +5,7 @@
 //  3. Allez dans Project Settings > General > Your apps > Web
 //  4. Copiez votre firebaseConfig et remplacez les valeurs ci-dessous
 // ============================================================
+/* jshint esversion: 6 */
 
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyDc2J2AL8uF5SQJCCxcItMVtEOW_3Wnyyo",

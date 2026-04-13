@@ -1,6 +1,7 @@
 // ============================================================
 //  FICHIER DE CONFIGURATION DES EMPLOYÉS
 // ============================================================
+/* jshint esversion: 6 */
 
 const MANAGERS = [
   { id: "JROY", prenom: "Joachim",  nom: "Roy",     email: "j.roy@shinken-solutions.com",    token: "1a4acea15ecfd5087fe7063abd15d9e5" },

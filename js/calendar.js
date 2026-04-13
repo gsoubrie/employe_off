@@ -2,6 +2,7 @@
 //  COMPOSANT CALENDRIER (calendar.js)
 //  Rendu du calendrier mensuel avec barres de couleur continues
 // ============================================================
+/* jshint esversion: 6 */
 
 class LeaveCalendar {
     constructor ( gridId, titleId, legendId ) {

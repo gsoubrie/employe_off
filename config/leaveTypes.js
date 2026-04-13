@@ -3,6 +3,8 @@
 //  Éditez ce fichier pour ajouter / modifier / supprimer des types.
 //  Chaque type doit avoir un id unique.
 // ============================================================
+/* jshint esversion: 6 */
+/* jshint strict: true */
 
 const LEAVE_TYPES = [
   {
