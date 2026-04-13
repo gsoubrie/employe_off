@@ -2,7 +2,7 @@
 //  COMPOSANT CALENDRIER (calendar.js)
 //  Rendu du calendrier mensuel avec barres de couleur continues
 // ============================================================
-/* jshint esversion: 6 */
+/* jshint esversion: 11 */
 
 class LeaveCalendar {
     constructor ( gridId, titleId, legendId ) {
@@ -87,7 +87,7 @@ class LeaveCalendar {
         function employeeColor ( name ) {
             let h = 0;
             for ( const c of name ) {
-                h = (h * 31 + c.charCodeAt( 0 )) & 0xffff;
+                h = (h * 31 + c.charCodeAt( 0 )) % 65536;
             }
             return PALETTE[ h % PALETTE.length ];
         }
@@ -188,7 +188,7 @@ class LeaveCalendar {
         this.leaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart ).forEach( ( leave ) => {
             const col    = employeeColor( leave.employeeName );
             const track  = trackMap.get( leave.id ) ?? 0;
-            const prénom = leave.employeeName.split( " " )[ 0 ];
+            const prenom = leave.employeeName.split( " " )[ 0 ];
             
             // Trouver les cellules concernées dans le mois affiché
             const concerned = cells.filter( ( c ) => c.dateStr >= leave.debut && c.dateStr <= leave.fin && !c.cell.classList.contains( "other-month" ) );
@@ -222,14 +222,9 @@ class LeaveCalendar {
                 bar.className = "cal-leave-bar";
                 bar.title     = `${leave.employeeName} – ${leave.typeLabel}`;
                 
-                // ── Demi-journée : uniquement sur la cellule concernée ──
-                // On détermine si ce segment de semaine est la 1re ou la dernière tranche
-                const halfDay = leave.halfDay ?? null; // "morning" | "afternoon" | null
-                
-                // left/width en % de cellule (0-100).  1 cellule = 100%.
-                // Pour une barre multi-cellules on travaille en px via calc().
-                const isMorningOnly   = halfDay === "morning" && isStart && first === last;
-                const isAfternoonOnly = halfDay === "afternoon" && isEnd && first === last;
+                // ── Demi-journée : basé sur periodeDebut / periodeFin ──
+                const isMorningOnly   = leave.periodeDebut === "Matin"      && isStart && first === last;
+                const isAfternoonOnly = leave.periodeFin   === "Après-midi" && isEnd   && first === last;
                 
                 // Décalage gauche et largeur selon la demi-journée
                 let leftOffset,
@@ -254,8 +249,6 @@ class LeaveCalendar {
                 // Border-radius : arrondi à gauche si début, à droite si fin
                 const rrTL = (isStart && !isAfternoonOnly) ? "4px" : "0";
                 const rrTR = (isEnd && !isMorningOnly) ? "4px" : "0";
-                const rrBR = rrTR;
-                const rrBL = rrTL;
                 
                 bar.style.cssText = `
     position: absolute;
@@ -269,7 +262,7 @@ class LeaveCalendar {
     font-weight: 500;
     line-height: ${BAR_HEIGHT}px;
     padding: 0 6px;
-    border-radius: ${rrTL} ${rrTR} ${rrBR} ${rrBL};
+    border-radius: ${rrTL} ${rrTR} ${rrTR} ${rrTL};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -279,7 +272,7 @@ class LeaveCalendar {
   `;
                 
                 // Afficher le prénom uniquement sur le 1er segment visible
-                bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prénom : "";
+                bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prenom : "";
                 
                 first.cell.style.position = "relative";
                 first.cell.style.overflow = "visible";
