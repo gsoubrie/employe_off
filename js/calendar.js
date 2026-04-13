@@ -170,55 +170,72 @@ class LeaveCalendar {
         byWeek.get(weekIdx).push(c);
       });
 
-      byWeek.forEach((weekCells) => {
-        const first = weekCells[0];
-        const last  = weekCells[weekCells.length - 1];
-        const isStart = first.dateStr === leave.debut;
-        const isEnd   = last.dateStr  === leave.fin;
+byWeek.forEach((weekCells) => {
+  const first  = weekCells[0];
+  const last   = weekCells[weekCells.length - 1];
+  const isStart = first.dateStr === leave.debut;
+  const isEnd   = last.dateStr  === leave.fin;
 
-        // Barre positionnée en CSS dans la première cellule de la semaine pour ce congé
-        const bar = document.createElement("div");
-        bar.className = "cal-leave-bar";
-        bar.title = `${leave.employeeName} – ${leave.typeLabel}`;
+  // ── Demi-journée : uniquement sur la cellule concernée ──
+  // On détermine si ce segment de semaine est la 1re ou la dernière tranche
+  const halfDay = leave.halfDay ?? null; // "morning" | "afternoon" | null
 
-        // Hauteur & position verticale selon le track
-        const BAR_HEIGHT = 18;
-        const BAR_GAP    = 2;
-        const BAR_TOP    = 22; // sous le numéro du jour
-        const top = BAR_TOP + track * (BAR_HEIGHT + BAR_GAP);
+  // left/width en % de cellule (0-100).  1 cellule = 100%.
+  // Pour une barre multi-cellules on travaille en px via calc().
+  const isMorningOnly   = halfDay === "morning"   && isStart && first === last;
+  const isAfternoonOnly = halfDay === "afternoon" && isEnd   && first === last;
 
-        // Largeur : span sur N cellules (moins les marges)
-        const spanCount = weekCells.length;
+  // Décalage gauche et largeur selon la demi-journée
+  let leftOffset, barWidth;
 
-        bar.style.cssText = `
-          position: absolute;
-          top: ${top}px;
-          left: ${isStart ? "4px" : "0"};
-          width: calc(${spanCount * 100}% + ${spanCount - 1}px - ${isStart ? "4px" : "0px"} - ${isEnd ? "4px" : "0px"});
-          height: ${BAR_HEIGHT}px;
-          background: ${col.bar};
-          color: #fff;
-          font-size: 11px;
-          font-weight: 500;
-          line-height: ${BAR_HEIGHT}px;
-          padding: 0 6px;
-          border-radius: ${isStart ? "4px" : "0"} ${isEnd ? "4px" : "0"} ${isEnd ? "4px" : "0"} ${isStart ? "4px" : "0"};
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          z-index: 2;
-          cursor: default;
-          box-sizing: border-box;
-        `;
+  if (isAfternoonOnly) {
+    // Barre sur la moitié droite de la cellule
+    leftOffset = `calc(50%)`;
+    barWidth   = `calc(50% - 4px)`;
+  } else if (isMorningOnly) {
+    // Barre sur la moitié gauche de la cellule
+    leftOffset = isStart ? "4px" : "0";
+    barWidth   = `calc(50% - 4px)`;
+  } else {
+    // Comportement normal (journée entière ou barre multi-cellules)
+    leftOffset = isStart ? "4px" : "0";
+    barWidth   = `calc(${spanCount * 100}% + ${spanCount - 1}px - ${isStart ? "4px" : "0px"} - ${isEnd ? "4px" : "0px"})`;
+  }
 
-        // N'afficher le prénom que sur la première cellule de la barre (début du congé ou début de semaine)
-        bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prénom : "";
+  // Border-radius : arrondi à gauche si début, à droite si fin
+  const rrTL = (isStart && !isAfternoonOnly) ? "4px" : "0";
+  const rrTR = (isEnd   && !isMorningOnly)   ? "4px" : "0";
+  const rrBR = rrTR;
+  const rrBL = rrTL;
 
-        // Positionner relativement à la cellule du 1er jour de la semaine
-        first.cell.style.position = "relative";
-        first.cell.style.overflow = "visible";
-        first.cell.appendChild(bar);
-      });
+  bar.style.cssText = `
+    position: absolute;
+    top: ${top}px;
+    left: ${leftOffset};
+    width: ${barWidth};
+    height: ${BAR_HEIGHT}px;
+    background: ${col.bar};
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: ${BAR_HEIGHT}px;
+    padding: 0 6px;
+    border-radius: ${rrTL} ${rrTR} ${rrBR} ${rrBL};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 2;
+    cursor: default;
+    box-sizing: border-box;
+  `;
+
+  // Afficher le prénom uniquement sur le 1er segment visible
+  bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prénom : "";
+
+  first.cell.style.position = "relative";
+  first.cell.style.overflow = "visible";
+  first.cell.appendChild(bar);
+});
     });
 
     // Assurer que les cellules ont assez de hauteur pour les barres
