@@ -234,6 +234,7 @@ L'application Congés Équipe`
 
 // ── Rendu liste ───────────────────────────────────────────────
 function renderLeaveItem ( leave, { showActions = false, onApprove, onReject, onDelete } = {} ) {
+    console.log("GSOU", "[renderLeaveItem - renderLeaveItem]", leave, { showActions = false, onApprove, onReject, onDelete } = {} );
     const emp    = getEmployeeById( leave.employeeId );
     const person = emp || { prenom: leave.employeeName.split( " " )[ 0 ], nom: leave.employeeName.split( " " )[ 1 ] || "" };
     const nb     = leave.nbJours || dayCount( leave.debut, leave.fin );
@@ -275,6 +276,6 @@ function computeStats ( leaves ) {
         total   : leaves.length,
         pending : leaves.filter( ( l ) => l.status === "pending" ).length,
         approved: leaves.filter( ( l ) => l.status === "approved" ).length,
-        upcoming: leaves.filter( ( l ) => l.status === "approved" && l.fin >= today ).length,
+        upcoming: leaves.filter( ( l ) => l.status === "approved" && l.fin >= today ).length
     };
 }
