@@ -116,7 +116,7 @@ function renderPending () {
         return;
     }
     el.innerHTML = pending.map( ( l ) =>
-        renderLeaveItem( l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal", onDelete: "handleDelete" } )
+        renderLeaveItem( l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal" } )
     ).join( "" );
 }
 
@@ -127,7 +127,7 @@ function renderAllList () {
         return;
     }
     el.innerHTML = allLeaves.map( ( l ) =>
-        renderLeaveItem( l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal", onDelete: "handleDelete" } )
+        renderLeaveItem( l, { showActions: true, onApprove: "handleApprove", onReject: "openRejectModal" } )
     ).join( "" );
 }
 

@@ -233,8 +233,7 @@ L'application Congés Équipe`
 }
 
 // ── Rendu liste ───────────────────────────────────────────────
-function renderLeaveItem ( leave, { showActions = false, onApprove, onReject, onDelete } = {} ) {
-    console.log("GSOU", "[renderLeaveItem - renderLeaveItem]", leave, { showActions = false, onApprove, onReject, onDelete } = {} );
+function renderLeaveItem ( leave, { showActions = false, onApprove, onReject } = {} ) {
     const emp    = getEmployeeById( leave.employeeId );
     const person = emp || { prenom: leave.employeeName.split( " " )[ 0 ], nom: leave.employeeName.split( " " )[ 1 ] || "" };
     const nb     = leave.nbJours || dayCount( leave.debut, leave.fin );
@@ -249,8 +248,7 @@ function renderLeaveItem ( leave, { showActions = false, onApprove, onReject, on
     <button class="btn success sm" onclick="${onApprove}('${leave.id}')">✓ Valider</button>
     <button class="btn danger sm"  onclick="${onReject}('${leave.id}')">✕ Refuser</button>` : "";
     
-    const deleteHTML = onDelete ? `
-    <button class="icon-btn" onclick="${onDelete}('${leave.id}')" title="Supprimer">✕</button>` : "";
+    const deleteHTML = `<button class="icon-btn" onclick="handleDelete('${leave.id}')" title="Supprimer">✕</button>`;
     
     return `
     <div class="list-item" style="${past ? "opacity:.5" : ""}" data-leave-id="${leave.id}">

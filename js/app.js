@@ -126,7 +126,7 @@ function renderMyLeaves() {
     return;
   }
   el.innerHTML = mine
-    .map((l) => renderLeaveItem(l, { onDelete: "handleDelete" }))
+    .map((l) => renderLeaveItem(l))
     .join("");
 }
 
