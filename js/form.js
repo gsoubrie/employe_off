@@ -1,19 +1,26 @@
 // ============================================================
-//  FORMULAIRE DE SAISIE — form.js
-//  Gère les toggles Matin/Après-midi et la logique de continuité
+//  FORM.JS — Logique toggles Matin/Après-midi
+//  Instanciable avec un préfixe d'IDs pour réutilisation
+//  Usage :
+//    const PeriodeForm   = createPeriodeForm("f");   // index.html
+//    const ManagerForm   = createPeriodeForm("m");   // manager.html
 // ============================================================
 /* jshint esversion: 6 */
+
 /* jshint strict: true */
 
-const PeriodeForm = (() => {
+function createPeriodeForm ( prefix ) {
     
-    // ── État interne ──────────────────────────────────────────
+    // ── État interne ────────────────────────────────────────────
     const state = {
         debut: { matin: true, apmidi: true },
         fin  : { matin: true, apmidi: true }
     };
     
-    // ── Helpers ───────────────────────────────────────────────
+    // ── Helpers ─────────────────────────────────────────────────
+    const p  = ( id ) => `${prefix}-${id}`;
+    const el = ( id ) => document.getElementById( p( id ) );
+    
     function periodeStr ( { matin, apmidi } ) {
         if ( matin && apmidi ) {
             return "Journée";
@@ -24,91 +31,72 @@ const PeriodeForm = (() => {
         return "Après-midi";
     }
     
-    function el ( id ) {
-        return document.getElementById( id );
+    // ── Détection des erreurs de continuité ─────────────────────
+    function getErrors () {
+        const sd   = state.debut;
+        const sf   = state.fin;
+        const dVal = el( "debut" ).value;
+        const fVal = el( "fin" ).value;
+        const err  = {};
+        
+        // Règle 1 : début sans après-midi → pas de lendemain
+        if ( dVal && fVal && fVal > dVal && !sd.apmidi ) {
+            err.debutApmidi = true;
+            err.debutMsg    = "Sans après-midi au début, la fin ne peut pas être un autre jour";
+        }
+        
+        // Règle 2 : fin sans matin → trou
+        if ( fVal && !sf.matin ) {
+            err.finMatin = true;
+            err.finMsg   = "La fin doit inclure le matin";
+        }
+        
+        // Règle 3 : même jour, début = après-midi → fin ne peut pas inclure le matin
+        if ( dVal && fVal && dVal === fVal && !sd.matin && sf.matin ) {
+            err.finMatin = true;
+            err.finMsg   = "Même jour : début après-midi, fin ne peut pas inclure le matin";
+        }
+        
+        return err;
     }
     
-    // ── Rendu boutons début ───────────────────────────────────
+    // ── Rendu boutons début ──────────────────────────────────────
     function renderDebut () {
         const s   = state.debut;
         const err = getErrors();
         
         el( "btn-debut-matin" ).className  = "pbtn " + (s.matin ? (err.debutMatin ? "err" : "on") : "off");
         el( "btn-debut-apmidi" ).className = "pbtn " + (s.apmidi ? (err.debutApmidi ? "err" : "on") : "off");
-        el( "f-periode-debut" ).value      = periodeStr( s );
-        
-        const errMsg                   = err.debutMsg || "";
-        el( "hint-debut" ).textContent = errMsg;
+        el( "periode-debut" ).value        = periodeStr( s );
+        el( "hint-debut" ).textContent     = err.debutMsg || "";
         
         // Activer les boutons si une date est saisie
-        el( "toggle-debut" ).classList.toggle( "active", !!el( "f-debut" ).value );
+        el( "toggle-debut" ).classList.toggle( "active", !!el( "debut" ).value );
     }
     
-    // ── Rendu boutons fin ─────────────────────────────────────
+    // ── Rendu boutons fin ────────────────────────────────────────
     function renderFin () {
-        const s      = state.fin;
-        const err    = getErrors();
-        const finVal = el( "f-fin" ).value;
+        const s   = state.fin;
+        const err = getErrors();
         
         el( "btn-fin-matin" ).className  = "pbtn " + (s.matin ? (err.finMatin ? "err" : "on") : "off");
         el( "btn-fin-apmidi" ).className = "pbtn " + (s.apmidi ? (err.finApmidi ? "err" : "on") : "off");
-        el( "f-periode-fin" ).value      = periodeStr( s );
-        
-        const errMsg                 = err.finMsg || "";
-        el( "hint-fin" ).textContent = errMsg;
+        el( "periode-fin" ).value        = periodeStr( s );
+        el( "hint-fin" ).textContent     = err.finMsg || "";
         
         // Activer les boutons si une date de fin est saisie
-        el( "toggle-fin" ).classList.toggle( "active", !!finVal );
+        el( "toggle-fin" ).classList.toggle( "active", !!el( "fin" ).value );
     }
     
-    // ── Détection des erreurs de continuité ───────────────────
-    // Règles :
-    //  1. Début sans après-midi → impossible de finir un autre jour
-    //  2. Fin sans matin → trou (la vraie fin serait la veille)
-    //  3. Même jour, début = après-midi → fin ne peut pas inclure le matin
-    function getErrors () {
-        const sd     = state.debut;
-        const sf     = state.fin;
-        const dVal   = el( "f-debut" ).value;
-        const fVal   = el( "f-fin" ).value;
-        const errors = {};
-        
-        // Règle 1
-        if ( dVal && fVal && fVal > dVal && !sd.apmidi ) {
-            errors.debutApmidi = true;
-            errors.debutMsg    = "Sans après-midi au début, la fin ne peut pas être un autre jour";
-        }
-        
-        // Règle 2
-        if ( fVal && !sf.matin ) {
-            errors.finMatin = true;
-            errors.finMsg   = "La fin doit inclure le matin";
-        }
-        
-        // Règle 3
-        if ( dVal && fVal && dVal === fVal && !sd.matin && sf.matin ) {
-            errors.finMatin = true;
-            errors.finMsg   = "Même jour : début après-midi, fin ne peut pas inclure le matin";
-        }
-        
-        return errors;
-    }
-    
-    // ── Section fin : visible dès que la date début est saisie ──
-    // On ne cache JAMAIS la fin — on affiche juste une erreur rouge
-    // si la combinaison crée un trou de continuité.
+    // ── Visibilité section fin ───────────────────────────────────
+    // Cachée si : pas de date début, OU début = Après-midi seulement
     function updateFinSection () {
-        const dVal                        = el( "f-debut" ).value;
-        el( "fin-section" ).style.display = dVal ? "" : "none";
+        const dVal       = el( "debut" ).value;
+        const apmidiOnly = !state.debut.matin && state.debut.apmidi;
         
-        const hidden_end = state.debut.matin && !state.debut.apmidi;
-        
-        if ( !dVal ) {
+        if ( !dVal || apmidiOnly ) {
             el( "fin-section" ).style.display = "none";
-        }
-        else if ( hidden_end ) {
-            el( "fin-section" ).style.display = "none";
-            el( "f-fin" ).value               = "";
+            el( "fin" ).value                 = "";
             state.fin                         = { matin: true, apmidi: true };
             renderFin();
         }
@@ -117,13 +105,13 @@ const PeriodeForm = (() => {
         }
     }
     
-    // ── Preview du nombre de jours ────────────────────────────
+    // ── Preview nombre de jours ──────────────────────────────────
     function updatePreview () {
-        const dVal = el( "f-debut" ).value;
-        const fVal = el( "f-fin" ).value;
+        const dVal = el( "debut" ).value;
+        const fVal = el( "fin" ).value;
         const fin  = (fVal && fVal >= dVal) ? fVal : dVal;
-        const pd   = el( "f-periode-debut" ).value;
-        const pf   = (fVal && fVal >= dVal) ? el( "f-periode-fin" ).value : pd;
+        const pd   = el( "periode-debut" ).value;
+        const pf   = (fVal && fVal >= dVal) ? el( "periode-fin" ).value : pd;
         const box  = el( "preview-days" );
         
         if ( !dVal ) {
@@ -131,7 +119,6 @@ const PeriodeForm = (() => {
             return;
         }
         
-        // Ne pas afficher si erreurs de continuité
         const err = getErrors();
         if ( err.debutMsg || err.finMsg ) {
             box.style.display = "none";
@@ -143,7 +130,7 @@ const PeriodeForm = (() => {
         box.innerHTML     = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
     }
     
-    // ── Sync global ───────────────────────────────────────────
+    // ── Sync global ──────────────────────────────────────────────
     function sync () {
         renderDebut();
         updateFinSection();
@@ -151,87 +138,81 @@ const PeriodeForm = (() => {
         updatePreview();
     }
     
-    // ── API publique ──────────────────────────────────────────
+    // ── API publique ─────────────────────────────────────────────
     return {
         
-        // Appelé quand la date de début change
         onDebutChange () {
-            const dVal        = el( "f-debut" ).value;
-            // Forcer la date min de fin = date de début
-            el( "f-fin" ).min = dVal || "";
-            // Si la fin est avant le début, la vider
-            if ( el( "f-fin" ).value && el( "f-fin" ).value < dVal ) {
-                el( "f-fin" ).value = "";
-                state.fin           = { matin: true, apmidi: true };
+            const dVal      = el( "debut" ).value;
+            el( "fin" ).min = dVal || "";
+            if ( el( "fin" ).value && el( "fin" ).value < dVal ) {
+                el( "fin" ).value = "";
+                state.fin         = { matin: true, apmidi: true };
             }
             sync();
         },
         
-        // Appelé quand la date de fin change
         onFinChange () {
             sync();
         },
         
-        // Toggle bouton début
         toggleDebut ( half ) {
             const s = state.debut;
             if ( half === "Matin" ) {
                 if ( s.matin && !s.apmidi ) {
                     return;
-                } // seul actif
+                }
                 s.matin = !s.matin;
             }
             else {
                 if ( !s.matin && s.apmidi ) {
                     return;
-                } // seul actif
+                }
                 s.apmidi = !s.apmidi;
             }
             sync();
         },
         
-        // Toggle bouton fin
         toggleFin ( half ) {
             const s = state.fin;
             if ( half === "Matin" ) {
                 if ( s.matin && !s.apmidi ) {
                     return;
-                } // seul actif
+                }
                 s.matin = !s.matin;
             }
             else {
                 if ( !s.matin && s.apmidi ) {
                     return;
-                } // seul actif
+                }
                 s.apmidi = !s.apmidi;
             }
             sync();
         },
         
-        // Valeurs à soumettre
         getValues () {
-            const dVal = el( "f-debut" ).value;
-            const fVal = el( "f-fin" ).value;
+            const dVal = el( "debut" ).value;
+            const fVal = el( "fin" ).value;
             const fin  = (fVal && fVal >= dVal) ? fVal : dVal;
-            const pd   = el( "f-periode-debut" ).value;
-            const pf   = (fVal && fVal >= dVal) ? el( "f-periode-fin" ).value : pd;
+            const pd   = el( "periode-debut" ).value;
+            const pf   = (fVal && fVal >= dVal) ? el( "periode-fin" ).value : pd;
             return { debut: dVal, fin, periodeDebut: pd, periodeFin: pf };
         },
         
-        // Vérifie si le formulaire est valide avant soumission
         isValid () {
             const err = getErrors();
-            return !err.debutMsg && !err.finMsg && !!el( "f-debut" ).value;
+            return !err.debutMsg && !err.finMsg && !!el( "debut" ).value;
         },
         
-        // Reset complet
         reset () {
-            el( "f-debut" ).value = "";
-            el( "f-fin" ).value   = "";
-            state.debut           = { matin: true, apmidi: true };
-            state.fin             = { matin: true, apmidi: true };
+            el( "debut" ).value = "";
+            el( "fin" ).value   = "";
+            state.debut         = { matin: true, apmidi: true };
+            state.fin           = { matin: true, apmidi: true };
             sync();
         },
     };
-    
-})();
+}
+
+// Instances globales
+const PeriodeForm = createPeriodeForm( "f" );   // index.html  (préfixe "f-")
+const ManagerForm = createPeriodeForm( "m" );   // manager.html (préfixe "m-")

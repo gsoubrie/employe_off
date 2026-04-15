@@ -1,22 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Espace Manager — Congés Équipe</title>
-<link rel="stylesheet" href="css/style.css" />
-<style>
-  #login-wall { display:none; min-height:100vh; align-items:center; justify-content:center; background:var(--bg2); }
-  #login-wall.visible { display:flex; }
-  .login-card { background:var(--bg); border-radius:var(--radius-lg); padding:2.5rem 2rem; width:min(380px,92vw); text-align:center; box-shadow:0 4px 24px rgba(0,0,0,.08); }
-  .login-card h2 { margin:0 0 .5rem; font-size:1.25rem; }
-  .login-card p  { color:var(--text2); font-size:14px; margin:0 0 1.5rem; }
-  .login-icon    { font-size:2.5rem; margin-bottom:1rem; }
-  .user-badge    { display:flex; align-items:center; gap:.6rem; font-size:14px; font-weight:500; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espace Manager — Congés Équipe</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/form.css" />
 </head>
 <body>
 
+<!-- ═══════════════ LOGIN WALL ═══════════════ -->
 <div id="login-wall">
   <div class="login-card">
     <div class="login-icon">🔒</div>
@@ -26,6 +19,7 @@
   </div>
 </div>
 
+<!-- ═══════════════ APP ═══════════════ -->
 <div id="app" style="display:none">
 <div class="container">
 
@@ -51,6 +45,7 @@
     <button class="tab active" onclick="switchTab('pending')">En attente <span id="badge-pending"></span></button>
     <button class="tab" onclick="switchTab('all')">Toutes les demandes</button>
     <button class="tab" onclick="switchTab('calendrier')">Calendrier équipe</button>
+    <button class="tab" onclick="switchTab('saisie')">Saisir pour un employé</button>
   </div>
 
   <!-- ═══ EN ATTENTE ═══ -->
@@ -81,10 +76,83 @@
       </div>
       <div id="cal-legend" class="cal-legend"></div>
       <div class="cal-grid" id="cal-grid">
-        <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div>
-        <div class="cal-day-name">Mer</div><div class="cal-day-name">Jeu</div>
-        <div class="cal-day-name">Ven</div><div class="cal-day-name">Sam</div>
+        <div class="cal-day-name">Lun</div>
+        <div class="cal-day-name">Mar</div>
+        <div class="cal-day-name">Mer</div>
+        <div class="cal-day-name">Jeu</div>
+        <div class="cal-day-name">Ven</div>
+        <div class="cal-day-name">Sam</div>
         <div class="cal-day-name">Dim</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SAISIE POUR UN EMPLOYÉ ═══ -->
+  <div id="tab-saisie" class="section">
+    <div class="card">
+
+      <!-- Sélecteur employé -->
+      <div class="field">
+        <label>Employé *</label>
+        <select id="m-employee" onchange="onEmployeeSelect()">
+          <option value="">— Choisir un employé —</option>
+        </select>
+      </div>
+
+      <!-- Formulaire (masqué tant qu'aucun employé n'est choisi) -->
+      <div id="m-form" style="display:none">
+
+        <div class="date-periode-row">
+          <div class="field field-date">
+            <label>Date de début *</label>
+            <input type="date" id="m-debut" onchange="ManagerForm.onDebutChange()" />
+          </div>
+          <div class="field-periode" id="m-toggle-debut">
+            <div class="periode-wrap-container">
+              <div class="periode-wrap">
+                <button class="pbtn on" id="m-btn-debut-matin"  onclick="ManagerForm.toggleDebut('Matin')">Matin</button>
+                <button class="pbtn on" id="m-btn-debut-apmidi" onclick="ManagerForm.toggleDebut('Après-midi')">Après-midi</button>
+              </div>
+              <div class="periode-error" id="m-hint-debut"></div>
+            </div>
+          </div>
+          <input type="hidden" id="m-periode-debut" value="Journée" />
+        </div>
+
+        <div id="m-fin-section" style="display:none">
+          <div class="date-periode-row">
+            <div class="field field-date">
+              <label>Date de fin <span style="color:var(--text3);font-weight:400">(optionnelle)</span></label>
+              <input type="date" id="m-fin" onchange="ManagerForm.onFinChange()" />
+            </div>
+            <div class="field-periode" id="m-toggle-fin">
+              <div class="periode-wrap-container">
+                <div class="periode-wrap">
+                  <button class="pbtn on" id="m-btn-fin-matin"  onclick="ManagerForm.toggleFin('Matin')">Matin</button>
+                  <button class="pbtn on" id="m-btn-fin-apmidi" onclick="ManagerForm.toggleFin('Après-midi')">Après-midi</button>
+                </div>
+                <div class="periode-error" id="m-hint-fin"></div>
+              </div>
+            </div>
+            <input type="hidden" id="m-periode-fin" value="Journée" />
+          </div>
+        </div>
+
+        <div id="m-preview-days" style="display:none;margin-bottom:.75rem;padding:.6rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
+
+        <div class="field">
+          <label>Type de congé *</label>
+          <select id="m-type"></select>
+        </div>
+        <div class="field">
+          <label>Note (optionnelle)</label>
+          <textarea id="m-note" rows="2" placeholder="Informations complémentaires..."></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn primary" id="m-btn-submit" onclick="handleManagerSubmit()">Enregistrer le congé</button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -117,168 +185,8 @@
 <script src="js/users.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/leaves.js"></script>
+<script src="js/form.js"></script>
+<script src="js/manager.js"></script>
 
-<script>
-let currentManager  = null;
-let allLeaves       = [];
-let pendingRejectId = null;
-let cal;
-let unsubscribe     = null;
-
-// ── Auth ──────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  const urlToken = new URLSearchParams(window.location.search).get("token");
-  const token    = urlToken || (() => { try { return sessionStorage.getItem("conges_token"); } catch(e){} })();
-
-  if (!token) { showLoginWall(); return; }
-  const employee = getEmployeeByToken(token);
-  if (!employee || !isManager(employee.id)) { showLoginWall(); return; }
-
-  try { sessionStorage.setItem("conges_token", token); } catch(e){}
-  if (urlToken) {
-    const u = new URL(window.location.href);
-    u.searchParams.delete("token");
-    window.history.replaceState({}, "", u.toString());
-  }
-
-  currentManager = employee;
-  bootApp();
-});
-
-function showLoginWall() {
-  document.getElementById("login-wall").classList.add("visible");
-}
-
-function bootApp() {
-  document.getElementById("app").style.display = "block";
-  document.getElementById("user-name-header").textContent = fullName(currentManager);
-  document.getElementById("user-avatar-header").innerHTML = avatarHTML(currentManager);
-
-  // Lien retour employé avec token
-  try {
-    document.getElementById("employee-link").href =
-      "index.html?token=" + sessionStorage.getItem("conges_token");
-  } catch(e){}
-
-  initFirebase();
-  checkFirebaseBanner();
-  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
-
-  if (isFirebaseConfigured()) {
-    unsubscribe = listenLeaves([], (leaves) => {
-      allLeaves = leaves.sort((a, b) => b.debut.localeCompare(a.debut));
-      renderAll();
-    });
-  }
-}
-
-// ── Navigation ────────────────────────────────────────────────
-function switchTab(t) {
-  document.querySelectorAll(".tab").forEach((el, i) =>
-    el.classList.toggle("active", ["pending","all","calendrier"][i] === t));
-  document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
-  document.getElementById("tab-" + t).classList.add("active");
-  if (t === "calendrier") cal.render();
-}
-
-function renderAll() {
-  renderPending();
-  renderAllList();
-  renderStats();
-  cal.setLeaves(allLeaves);
-}
-
-function renderPending() {
-  const pending = allLeaves.filter((l) => l.status === "pending");
-  const badge = document.getElementById("badge-pending");
-  badge.textContent = pending.length ? ` (${pending.length})` : "";
-  badge.style.color = pending.length ? "var(--amber)" : "";
-  const el = document.getElementById("pending-list");
-  if (!pending.length) { el.innerHTML = '<div class="empty">Aucune demande en attente ✓</div>'; return; }
-  el.innerHTML = pending.map((l) =>
-    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal", onDelete:"handleDelete" })
-  ).join("");
-}
-
-function renderAllList() {
-  const el = document.getElementById("all-list");
-  if (!allLeaves.length) { el.innerHTML = '<div class="empty">Aucun congé enregistré</div>'; return; }
-  el.innerHTML = allLeaves.map((l) =>
-    renderLeaveItem(l, { showActions:true, onApprove:"handleApprove", onReject:"openRejectModal", onDelete:"handleDelete" })
-  ).join("");
-}
-
-function renderStats() {
-  const s = computeStats(allLeaves);
-  document.getElementById("stats-grid").innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total demandes</div><div class="stat-value">${s.total}</div></div>
-    <div class="stat-card"><div class="stat-label">En attente</div><div class="stat-value" style="color:var(--amber)">${s.pending}</div></div>
-    <div class="stat-card"><div class="stat-label">Approuvés</div><div class="stat-value" style="color:var(--green)">${s.approved}</div></div>
-    <div class="stat-card"><div class="stat-label">À venir</div><div class="stat-value">${s.upcoming}</div></div>`;
-}
-
-// ── Actions ───────────────────────────────────────────────────
-async function handleApprove(id) {
-  try {
-    await updateLeaveStatus(id, "approved");
-    showToast("Congé approuvé");
-    sendStatusEmail(id, "approved");
-  } catch (e) { showToast("Erreur : " + e.message, "error"); }
-}
-
-async function handleDelete(id) {
-  const leave = allLeaves.find((l) => l.id === id);
-  const name  = leave ? leave.employeeName : "";
-  if (!confirm(`Supprimer définitivement le congé de ${name} ?`)) return;
-  try {
-    await fsDelete("conges", id);
-    showToast("Congé supprimé");
-  } catch (e) { showToast("Erreur : " + e.message, "error"); }
-}
-
-function openRejectModal(id) {
-  pendingRejectId = id;
-  document.getElementById("reject-comment").value = "";
-  document.getElementById("modal-overlay").style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("modal-overlay").style.display = "none";
-  pendingRejectId = null;
-}
-
-async function confirmReject() {
-  if (!pendingRejectId) return;
-  const comment = document.getElementById("reject-comment").value;
-  try {
-    await updateLeaveStatus(pendingRejectId, "rejected", comment);
-    showToast("Congé refusé");
-    sendStatusEmail(pendingRejectId, "rejected", comment);
-    closeModal();
-  } catch (e) { showToast("Erreur : " + e.message, "error"); }
-}
-
-// Mail de réponse signé par le manager connecté
-function sendStatusEmail(leaveId, status, comment = "") {
-  const leave = allLeaves.find((l) => l.id === leaveId);
-  if (!leave || !leave.employeeEmail) return;
-  const label = status === "approved" ? "approuvée" : "refusée";
-  const nb    = leave.nbJours || dayCount(leave.debut, leave.fin);
-  const subject = encodeURIComponent(`Votre demande de congé a été ${label}`);
-  const body = encodeURIComponent(
-`Bonjour ${leave.employeeName.split(" ")[0]},
-
-Votre demande de ${leave.typeLabel} (${formatDate(leave.debut)} → ${formatDate(leave.fin)}, ${nb} jour${nb>1?"s":""}) a été ${label}.
-${comment ? `\nCommentaire : ${comment}\n` : ""}
-Cordialement,
-${fullName(currentManager)}`
-  );
-  window.location.href = `mailto:${leave.employeeEmail}?subject=${subject}&body=${body}`;
-}
-
-document.getElementById("modal-overlay").addEventListener("click", (e) => {
-  if (e.target === e.currentTarget) closeModal();
-});
-</script>
 </body>
 </html>
