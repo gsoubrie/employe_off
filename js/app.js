@@ -130,15 +130,6 @@ function renderMyLeaves() {
     .join("");
 }
 
-async function handleDelete(id) {
-  if (!confirm("Supprimer ce congé ?")) return;
-  try {
-    await fsDelete("conges", id);
-    showToast("Congé supprimé");
-  } catch (e) {
-    showToast("Erreur lors de la suppression", "error");
-  }
-}
 
 // ── Stats ─────────────────────────────────────────────────────
 function renderStats() {

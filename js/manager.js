@@ -265,3 +265,13 @@ async function handleManagerSubmit () {
         btn.textContent = "Enregistrer le congé";
     }
 }
+
+async function handleDelete(id) {
+  if (!confirm("Supprimer ce congé ?")) return;
+  try {
+    await fsDelete("conges", id);
+    showToast("Congé supprimé");
+  } catch (e) {
+    showToast("Erreur lors de la suppression", "error");
+  }
+}
