@@ -31,73 +31,41 @@ function createPeriodeForm ( prefix ) {
         return "Après-midi";
     }
     
-    // ── Détection des erreurs de continuité ─────────────────────
-    function getErrors () {
-        const sd   = state.debut;
-        const sf   = state.fin;
-        const dVal = el( "debut" ).value;
-        const fVal = el( "fin" ).value;
-        const err  = {};
-        
-        // Règle 1 : début sans après-midi → pas de lendemain
-        if ( dVal && fVal && fVal > dVal && !sd.apmidi ) {
-            err.debutApmidi = true;
-            err.debutMsg    = "Sans après-midi au début, la fin ne peut pas être un autre jour";
-        }
-        
-        // Règle 2 : fin sans matin → trou
-        if ( fVal && !sf.matin ) {
-            err.finMatin = true;
-            err.finMsg   = "La fin doit inclure le matin";
-        }
-        
-        // Règle 3 : même jour, début = après-midi → fin ne peut pas inclure le matin
-        if ( dVal && fVal && dVal === fVal && !sd.matin && sf.matin ) {
-            err.finMatin = true;
-            err.finMsg   = "Même jour : début après-midi, fin ne peut pas inclure le matin";
-        }
-        
-        return err;
-    }
-    
     // ── Rendu boutons début ──────────────────────────────────────
     function renderDebut () {
-        const s   = state.debut;
-        const err = getErrors();
-        
-        //el( "btn-debut-matin" ).className  = "pbtn " + (s.matin ? (err.debutMatin ? "err" : "on") : "off");
-        el( "btn-debut-apmidi" ).className = "pbtn " + (s.apmidi ? (err.debutApmidi ? "err" : "on") : "off");
+        const s = state.debut;
+        el( "btn-debut-matin" ).className  = "pbtn " + (s.matin ? "on" : "off");
+        el( "btn-debut-apmidi" ).className = "pbtn " + (s.apmidi ? "on" : "off");
         el( "periode-debut" ).value        = periodeStr( s );
-        el( "hint-debut" ).textContent     = err.debutMsg || "";
-        
+        el( "hint-debut" ).textContent     = "";
+
         // Activer les boutons si une date est saisie
         el( "toggle-debut" ).classList.toggle( "active", !!el( "debut" ).value );
     }
     
     // ── Rendu boutons fin ────────────────────────────────────────
     function renderFin () {
-        const s   = state.fin;
-        const err = getErrors();
-        
-        el( "btn-fin-matin" ).className  = "pbtn " + (s.matin ? (err.finMatin ? "err" : "on") : "off");
-        //el( "btn-fin-apmidi" ).className = "pbtn " + (s.apmidi ? (err.finApmidi ? "err" : "on") : "off");
+        const s = state.fin;
+
+        // Règle 3 : le matin de la fin est toujours actif et non-toggleable
+        el( "btn-fin-matin" ).className  = "pbtn on disabled";
+        el( "btn-fin-apmidi" ).className = "pbtn " + (s.apmidi ? "on" : "off");
         el( "periode-fin" ).value        = periodeStr( s );
-        el( "hint-fin" ).textContent     = err.finMsg || "";
-        
+        el( "hint-fin" ).textContent     = "";
+
         // Activer les boutons si une date de fin est saisie
         el( "toggle-fin" ).classList.toggle( "active", !!el( "fin" ).value );
     }
     
     // ── Visibilité section fin ───────────────────────────────────
-    // Cachée si : pas de date début, OU début = Après-midi seulement
+    // Règle 2 : cachée si après-midi du début est décoché
     function updateFinSection () {
-        const dVal       = el( "debut" ).value;
-        const apmidiOnly = !state.debut.matin && state.debut.apmidi;
-        
-        if ( !dVal || apmidiOnly ) {
+        const dVal = el( "debut" ).value;
+
+        if ( !dVal || !state.debut.apmidi ) {
             el( "fin-section" ).style.display = "none";
-            el( "fin" ).value                 = "";
-            state.fin                         = { matin: true, apmidi: true };
+            el( "fin" ).value                                      = "";
+            state.fin                                              = { matin: true, apmidi: true };
             renderFin();
         }
         else {
@@ -119,12 +87,6 @@ function createPeriodeForm ( prefix ) {
             return;
         }
         
-        const err = getErrors();
-        if ( err.debutMsg || err.finMsg ) {
-            box.style.display = "none";
-            return;
-        }
-        
         const nb          = calculateDays( dVal, fin, pd, pf );
         box.style.display = "block";
         box.innerHTML     = `<strong>${nb} jour${nb > 1 ? "s" : ""}</strong> ouvré${nb > 1 ? "s" : ""}`;
@@ -142,8 +104,15 @@ function createPeriodeForm ( prefix ) {
     return {
         
         onDebutChange () {
-            const dVal      = el( "debut" ).value;
-            el( "fin" ).min = dVal || "";
+            const dVal = el( "debut" ).value;
+            if ( dVal ) {
+                const next = new Date( dVal );
+                next.setDate( next.getDate() + 1 );
+                el( "fin" ).min = next.toISOString().slice( 0, 10 );
+            }
+            else {
+                el( "fin" ).min = "";
+            }
             if ( el( "fin" ).value && el( "fin" ).value < dVal ) {
                 el( "fin" ).value = "";
                 state.fin         = { matin: true, apmidi: true };
@@ -158,14 +127,16 @@ function createPeriodeForm ( prefix ) {
         toggleDebut ( half ) {
             const s = state.debut;
             if ( half === "Matin" ) {
+                // Règle 1 : décocher matin est toujours permis (tant qu'au moins un reste actif)
                 if ( s.matin && !s.apmidi ) {
-                    return;
+                    return; // empêche de tout décocher
                 }
                 s.matin = !s.matin;
             }
             else {
+                // Règle 2 : décocher après-midi cache la section fin
                 if ( !s.matin && s.apmidi ) {
-                    return;
+                    return; // empêche de tout décocher
                 }
                 s.apmidi = !s.apmidi;
             }
@@ -175,14 +146,13 @@ function createPeriodeForm ( prefix ) {
         toggleFin ( half ) {
             const s = state.fin;
             if ( half === "Matin" ) {
-                if ( s.matin && !s.apmidi ) {
-                    return;
-                }
-                s.matin = !s.matin;
+                // Règle 3 : le matin de la fin n'est jamais toggleable
+                return;
             }
             else {
+                // Règle 4 : après-midi de la fin peut être décoché librement
                 if ( !s.matin && s.apmidi ) {
-                    return;
+                    return; // empêche de tout décocher (sécurité)
                 }
                 s.apmidi = !s.apmidi;
             }
@@ -199,8 +169,7 @@ function createPeriodeForm ( prefix ) {
         },
         
         isValid () {
-            const err = getErrors();
-            return !err.debutMsg && !err.finMsg && !!el( "debut" ).value;
+            return !!el( "debut" ).value;
         },
         
         reset () {
@@ -209,7 +178,7 @@ function createPeriodeForm ( prefix ) {
             state.debut         = { matin: true, apmidi: true };
             state.fin           = { matin: true, apmidi: true };
             sync();
-        },
+        }
     };
 }
 

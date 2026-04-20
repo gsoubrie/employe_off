@@ -61,40 +61,40 @@
           <label>Date de début *</label>
           <input type="date" id="f-debut" onchange="PeriodeForm.onDebutChange()" />
         </div>
-        <div class="field-periode" id="toggle-debut">
+        <div class="field-periode" id="f-toggle-debut">
           <label>Période début</label>
           <div class="periode-wrap-container">
             <div class="periode-wrap">
-              <button class="pbtn on" id="btn-debut-matin"  onclick="PeriodeForm.toggleDebut('Matin')">Matin</button>
-              <button class="pbtn on" id="btn-debut-apmidi" onclick="PeriodeForm.toggleDebut('Après-midi')">Après-midi</button>
+              <button class="pbtn on" id="f-btn-debut-matin"  onclick="PeriodeForm.toggleDebut('Matin')">Matin</button>
+              <button class="pbtn on" id="f-btn-debut-apmidi" onclick="PeriodeForm.toggleDebut('Après-midi')">Après-midi</button>
             </div>
-            <div class="periode-error" id="hint-debut"></div>
+            <div class="periode-error" id="f-hint-debut"></div>
           </div>
         </div>
         <input type="hidden" id="f-periode-debut" value="Journée" />
       </div>
 
-      <div id="fin-section" style="display:none">
+      <div id="f-fin-section" style="display:none">
         <div class="date-periode-row">
           <div class="field field-date">
             <label>Date de fin <span style="color:var(--text3);font-weight:400">(optionnelle)</span></label>
             <input type="date" id="f-fin" onchange="PeriodeForm.onFinChange()" />
           </div>
-          <div class="field-periode" id="toggle-fin">
+          <div class="field-periode" id="f-toggle-fin">
             <label>Période fin</label>
             <div class="periode-wrap-container">
               <div class="periode-wrap">
-                <button class="pbtn on" id="btn-fin-matin"  onclick="PeriodeForm.toggleFin('Matin')">Matin</button>
-                <button class="pbtn on" id="btn-fin-apmidi" onclick="PeriodeForm.toggleFin('Après-midi')">Après-midi</button>
+                <button class="pbtn on" id="f-btn-fin-matin"  onclick="PeriodeForm.toggleFin('Matin')">Matin</button>
+                <button class="pbtn on" id="f-btn-fin-apmidi" onclick="PeriodeForm.toggleFin('Après-midi')">Après-midi</button>
               </div>
-              <div class="periode-error" id="hint-fin"></div>
+              <div class="periode-error" id="f-hint-fin"></div>
             </div>
           </div>
           <input type="hidden" id="f-periode-fin" value="Journée" />
         </div>
       </div>
 
-      <div id="preview-days" style="display:none;margin-bottom:.75rem;padding:.6rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
+      <div id="f-preview-days" style="display:none;margin-bottom:.75rem;padding:.6rem 1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)"></div>
 
       <div class="field">
         <label>Type de congé *</label>

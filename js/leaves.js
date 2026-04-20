@@ -92,6 +92,13 @@ function periodeValue ( periode ) {
     return periode === "Journée" ? 1 : 0.5;
 }
 
+function toLocalDateStr ( date ) {
+    const y  = date.getFullYear();
+    const m  = String( date.getMonth() + 1 ).padStart( 2, "0" );
+    const d  = String( date.getDate() ).padStart( 2, "0" );
+    return `${y}-${m}-${d}`;
+}
+
 function calculateDays ( debut, fin, periodeDebut, periodeFin ) {
     if ( debut === fin ) {
         const d = new Date( debut + "T00:00" );
@@ -105,7 +112,7 @@ function calculateDays ( debut, fin, periodeDebut, periodeFin ) {
     const cur = new Date( debut + "T00:00" );
     while ( cur <= d2 ) {
         const dow     = cur.getDay();
-        const dateStr = cur.toISOString().slice( 0, 10 );
+        const dateStr = toLocalDateStr( cur );
         if ( dow !== 0 && dow !== 6 && !isFerie( dateStr ) ) {
             if ( dateStr === debut ) {
                 total += periodeValue( periodeDebut );
