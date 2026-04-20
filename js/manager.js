@@ -179,15 +179,19 @@ async function confirmReject () {
     }
 }
 
-function sendStatusEmail ( leaveId, status, comment = "" ) {
-    const leave = allLeaves.find( ( l ) => l.id === leaveId );
+function sendStatusEmail ( leaveId, status, comment = "", leaveOverride = null ) {
+    const leave = leaveOverride || allLeaves.find( ( l ) => l.id === leaveId );
     if ( !leave || !leave.employeeEmail ) {
         return;
     }
-    const label          = status === "approved" ? "approuvée" : "refusée";
-    const nb             = leave.nbJours || dayCount( leave.debut, leave.fin );
-    const subject        = encodeURIComponent( `Votre demande de congé a été ${label}` );
-    const body           = encodeURIComponent(
+    const label      = status === "approved" ? "approuvée" : "refusée";
+    const nb         = leave.nbJours || dayCount( leave.debut, leave.fin );
+    const subject    = encodeURIComponent( buildEmailSubject( leave ) );
+    const ccEmails   = getAllManagers()
+        .map( ( m ) => m.email )
+        .filter( Boolean )
+        .join( "," );
+    const body       = encodeURIComponent(
         `Bonjour ${leave.employeeName.split( " " )[ 0 ]},
 
 Votre demande de ${leave.typeLabel} (${formatDate( leave.debut )} → ${formatDate( leave.fin )}, ${nb} jour${nb > 1 ? "s" : ""}) a été ${label}.
@@ -195,7 +199,7 @@ ${comment ? `\nCommentaire : ${comment}\n` : ""}
 Cordialement,
 ${fullName( currentManager )}`
     );
-    window.location.href = `mailto:${leave.employeeEmail}?subject=${subject}&body=${body}`;
+    window.open( `mailto:${leave.employeeEmail}?cc=${encodeURIComponent( ccEmails )}&subject=${subject}&body=${body}` );
 }
 
 document.getElementById( "modal-overlay" ).addEventListener( "click", ( e ) => {
@@ -238,15 +242,19 @@ async function handleManagerSubmit () {
     try {
         const { debut, fin, periodeDebut, periodeFin } = ManagerForm.getValues();
         
-        await submitLeave( {
+        const result = await submitLeave( {
             employeeId: empId,
             debut,
             fin,
             periodeDebut,
             periodeFin,
-            typeId    : document.getElementById( "m-type" ).value,
-            note      : document.getElementById( "m-note" ).value
+            typeId          : document.getElementById( "m-type" ).value,
+            note            : document.getElementById( "m-note" ).value,
+            skipRequestEmail: true
         } );
+
+        // Mail de confirmation envoyé à l'employé (congé approuvé directement par le manager)
+        sendStatusEmail( result.id, "approved", "", result );
         
         showToast( `Congé enregistré pour ${fullName( getEmployeeById( empId ) )} !` );
         

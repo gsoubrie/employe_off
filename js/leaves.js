@@ -92,13 +92,6 @@ function periodeValue ( periode ) {
     return periode === "Journée" ? 1 : 0.5;
 }
 
-function toLocalDateStr ( date ) {
-    const y  = date.getFullYear();
-    const m  = String( date.getMonth() + 1 ).padStart( 2, "0" );
-    const d  = String( date.getDate() ).padStart( 2, "0" );
-    return `${y}-${m}-${d}`;
-}
-
 function calculateDays ( debut, fin, periodeDebut, periodeFin ) {
     if ( debut === fin ) {
         const d = new Date( debut + "T00:00" );
@@ -112,7 +105,7 @@ function calculateDays ( debut, fin, periodeDebut, periodeFin ) {
     const cur = new Date( debut + "T00:00" );
     while ( cur <= d2 ) {
         const dow     = cur.getDay();
-        const dateStr = toLocalDateStr( cur );
+        const dateStr = cur.toISOString().slice( 0, 10 );
         if ( dow !== 0 && dow !== 6 && !isFerie( dateStr ) ) {
             if ( dateStr === debut ) {
                 total += periodeValue( periodeDebut );
@@ -136,7 +129,7 @@ function buildPayfitSubject ( leave ) {
 
 // ── Soumission ────────────────────────────────────────────────
 async function submitLeave ( formData ) {
-    const { employeeId, debut, fin, typeId, periodeDebut, periodeFin, note } = formData;
+    const { employeeId, debut, fin, typeId, periodeDebut, periodeFin, note, skipRequestEmail } = formData;
     
     if ( !employeeId || !debut || !fin || !typeId ) {
         throw new Error( "Champs obligatoires manquants" );
@@ -179,7 +172,7 @@ async function submitLeave ( formData ) {
     };
     
     const docId = await fsAdd( COLLECTION, docData );
-    if ( leaveType.requiresValidation ) {
+    if ( leaveType.requiresValidation && !skipRequestEmail ) {
         sendLeaveRequestEmail( { ...docData, id: docId } );
     }
     return { id: docId, ...docData };
@@ -236,7 +229,7 @@ Cordialement,
 L'application Congés Équipe`
     );
     
-    window.location.href = `mailto:${toEmail}?cc=${encodeURIComponent( ccEmails )}&subject=${subject}&body=${body}`;
+    window.open( `mailto:${toEmail}?cc=${encodeURIComponent( ccEmails )}&subject=${subject}&body=${body}` );
 }
 
 // ── Rendu liste ───────────────────────────────────────────────
