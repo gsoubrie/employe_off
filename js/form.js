@@ -65,7 +65,7 @@ function createPeriodeForm ( prefix ) {
         const s   = state.debut;
         const err = getErrors();
         
-        el( "btn-debut-matin" ).className  = "pbtn " + (s.matin ? (err.debutMatin ? "err" : "on") : "off");
+        //el( "btn-debut-matin" ).className  = "pbtn " + (s.matin ? (err.debutMatin ? "err" : "on") : "off");
         el( "btn-debut-apmidi" ).className = "pbtn " + (s.apmidi ? (err.debutApmidi ? "err" : "on") : "off");
         el( "periode-debut" ).value        = periodeStr( s );
         el( "hint-debut" ).textContent     = err.debutMsg || "";
@@ -80,7 +80,7 @@ function createPeriodeForm ( prefix ) {
         const err = getErrors();
         
         el( "btn-fin-matin" ).className  = "pbtn " + (s.matin ? (err.finMatin ? "err" : "on") : "off");
-        el( "btn-fin-apmidi" ).className = "pbtn " + (s.apmidi ? (err.finApmidi ? "err" : "on") : "off");
+        //el( "btn-fin-apmidi" ).className = "pbtn " + (s.apmidi ? (err.finApmidi ? "err" : "on") : "off");
         el( "periode-fin" ).value        = periodeStr( s );
         el( "hint-fin" ).textContent     = err.finMsg || "";
         

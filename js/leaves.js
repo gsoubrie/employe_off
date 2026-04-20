@@ -6,7 +6,7 @@
 
 
 const COLLECTION           = "conges";
-const PAYFIT_SUBJECT_TYPES = ["CP", "MALADIE", "FAMILLE", "AUTRE"];
+const PAYFIT_SUBJECT_TYPES = ["CP", "MEDICAL", "FAMILLE", "AUTRE"];
 
 
 // ── Jours fériés français 2024-2029 (dates fixes) ─────────────

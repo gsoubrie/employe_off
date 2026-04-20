@@ -20,8 +20,8 @@ const LEAVE_TYPES = [
     requiresValidation: true,
   },
   {
-    id: "MALADIE",
-    label: "Maladie",
+    id: "MEDICAL",
+    label: "Médical",
     color: { bg: "#FCEBEB", text: "#791F1F", dot: "#E24B4A" },
     requiresValidation: false,
   },
