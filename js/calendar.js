@@ -5,13 +5,17 @@
 /* jshint esversion: 11 */
 
 class LeaveCalendar {
+    static _registry = new Map();
+
     constructor ( gridId, titleId, legendId ) {
         this.gridId      = gridId;
         this.titleId     = titleId;
         this.legendId    = legendId;
         this.current     = new Date();
         this.leaves      = [];
+        this.activeFilter = null;
         this._dayHeaders = null;
+        LeaveCalendar._registry.set( legendId, this );
     }
     
     setLeaves ( leaves ) {
@@ -34,6 +38,11 @@ class LeaveCalendar {
         this.render();
     }
     
+    toggleFilter ( name ) {
+        this.activeFilter = this.activeFilter === name ? null : name;
+        this.render();
+    }
+
     render () {
         const year  = this.current.getFullYear();
         const month = this.current.getMonth();
@@ -101,9 +110,14 @@ class LeaveCalendar {
         
         const legendEl = document.getElementById( this.legendId );
         if ( legendEl ) {
+            const legendId = this.legendId;
             legendEl.innerHTML = [...namesSet].map( ( name ) => {
-                const col = employeeColor( name );
-                return `<div class="cal-legend-item">
+                const col      = employeeColor( name );
+                const isActive = this.activeFilter === null || this.activeFilter === name;
+                const safeName = name.replace( /\\/g, "\\\\" ).replace( /'/g, "\\'" );
+                return `<div class="cal-legend-item${this.activeFilter === name ? " cal-legend-active" : ""}"
+                  style="cursor:pointer;opacity:${isActive ? 1 : 0.35};transition:opacity .15s"
+                  onclick="LeaveCalendar._registry.get('${legendId}').toggleFilter('${safeName}')">
           <div class="cal-legend-dot" style="background:${col.bar}"></div>
           <span>${name}</span>
         </div>`;
@@ -194,7 +208,11 @@ class LeaveCalendar {
         // Rendu des barres de congé
         // Pour chaque congé, on dessine une barre qui s'étend sur les cellules concernées
         // En coupant les lignes à chaque début de semaine
-        this.leaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart ).forEach( ( leave ) => {
+        const visibleLeaves = this.activeFilter
+            ? this.leaves.filter( ( l ) => l.employeeName === this.activeFilter )
+            : this.leaves;
+
+        visibleLeaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart ).forEach( ( leave ) => {
             const col    = employeeColor( leave.employeeName );
             const track  = trackMap.get( leave.id ) ?? 0;
             const prenom = leave.employeeName.split( " " )[ 0 ];
