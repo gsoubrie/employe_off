@@ -14,25 +14,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const sessToken = (() => { try { return sessionStorage.getItem("conges_token"); } catch(e) { return null; } })();
   const token     = urlToken || sessToken;
 
-  if (!token) { showLoginWall(); return; }
+  const employee = token ? getEmployeeByToken(token) : null;
 
-  const employee = getEmployeeByToken(token);
-  if (!employee) { showLoginWall(); return; }
-
-  // Persister le token et nettoyer l'URL
-  try { sessionStorage.setItem("conges_token", token); } catch(e) {}
-  if (urlToken) {
-    const u = new URL(window.location.href);
-    u.searchParams.delete("token");
-    window.history.replaceState({}, "", u.toString());
+  if (employee) {
+    // Persister le token et nettoyer l'URL
+    try { sessionStorage.setItem("conges_token", token); } catch(e) {}
+    if (urlToken) {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("token");
+      window.history.replaceState({}, "", u.toString());
+    }
+    currentEmployee = employee;
+    bootApp();
+  } else {
+    // Pas de token valide : accès anonyme, calendrier uniquement
+    bootCalendarOnly();
   }
-
-  currentEmployee = employee;
-  bootApp();
 });
 
-function showLoginWall() {
-  document.getElementById("login-wall").classList.add("visible");
+function bootCalendarOnly() {
+  document.getElementById("app").style.display = "block";
+
+  // Masquer les onglets Saisie et Mes congés, ne garder que Calendrier
+  document.querySelectorAll(".tab").forEach((t) => {
+    if (t.textContent.trim() !== "Calendrier") t.style.display = "none";
+  });
+
+  // Activer directement l'onglet calendrier
+  document.querySelectorAll(".section").forEach((el) => el.classList.remove("active"));
+  document.getElementById("tab-calendrier").classList.add("active");
+
+  initFirebase();
+  checkFirebaseBanner();
+
+  cal = new LeaveCalendar("cal-grid", "cal-title", "cal-legend");
+
+  if (isFirebaseConfigured()) {
+    listenLeaves([], (leaves) => {
+      allLeaves = leaves;
+      cal.setLeaves(leaves);
+      cal.render();
+    });
+  }
 }
 
 function bootApp() {
