@@ -149,17 +149,18 @@ async function submitLeave ( formData ) {
     const nbJours       = calculateDays( debut, fin, pd, pf );
     const initialStatus = leaveType.requiresValidation ? "pending" : "approved";
     
-    const allManagers = getAllManagers();
-    const managerIds  = allManagers.map( ( m ) => m.id );
+    const directManager = getManagerForEmployee( employeeId );
+    const allManagers   = getAllManagers();
+    const managerIds    = allManagers.map( ( m ) => m.id );
     
     const docData = {
         employeeId,
         employeeName    : fullName( employee ),
         employeeLastName: employee.nom,
         employeeEmail   : employee.email,
-        managerId       : managerIds[ 0 ],
+        managerId       : directManager ? directManager.id : managerIds[ 0 ],
         managerIds,
-        managerEmail    : allManagers.map( ( m ) => m.email ).join( "," ),
+        managerEmail    : allManagers.map( ( m ) => m.email ).join( ";" ),
         managerName     : allManagers.map( ( m ) => fullName( m ) ).join( ", " ),
         debut, fin,
         periodeDebut    : pd,
