@@ -190,7 +190,7 @@ function sendStatusEmail ( leaveId, status, comment = "", leaveOverride = null )
     const ccEmails   = getAllManagers()
         .map( ( m ) => m.email )
         .filter( Boolean )
-        .join( "," );
+        .join( ";" );
     const body       = encodeURIComponent(
         `Bonjour ${leave.employeeName.split( " " )[ 0 ]},
 
@@ -199,7 +199,7 @@ ${comment ? `\nCommentaire : ${comment}\n` : ""}
 Cordialement,
 ${fullName( currentManager )}`
     );
-    window.open( `mailto:${leave.employeeEmail}?cc=${encodeURIComponent( ccEmails )}&subject=${subject}&body=${body}` );
+    window.open( `mailto:${leave.employeeEmail}?cc=${ccEmails}&subject=${subject}&body=${body}` );
 }
 
 document.getElementById( "modal-overlay" ).addEventListener( "click", ( e ) => {

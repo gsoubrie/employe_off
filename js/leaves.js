@@ -211,7 +211,7 @@ function sendLeaveRequestEmail ( leave ) {
     const ccEmails = [
         ...allManagers.filter( ( m ) => m.email !== toEmail ).map( ( m ) => m.email ),
         leave.employeeEmail
-    ].filter( Boolean ).join( "," );
+    ].filter( Boolean ).join( ";" );
     
     const body = encodeURIComponent(
         `Bonjour,
@@ -229,7 +229,7 @@ Cordialement,
 L'application Congés Équipe`
     );
     
-    window.open( `mailto:${toEmail}?cc=${encodeURIComponent( ccEmails )}&subject=${subject}&body=${body}` );
+    window.open( `mailto:${toEmail}?cc=${ccEmails}&subject=${subject}&body=${body}` );
 }
 
 // ── Rendu liste ───────────────────────────────────────────────

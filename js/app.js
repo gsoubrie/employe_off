@@ -19,11 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (employee) {
     // Persister le token et nettoyer l'URL
     try { sessionStorage.setItem("conges_token", token); } catch(e) {}
-    if (urlToken) {
-      const u = new URL(window.location.href);
-      u.searchParams.delete("token");
-      window.history.replaceState({}, "", u.toString());
-    }
+    //if (urlToken) {
+    //  const u = new URL(window.location.href);
+    //  u.searchParams.delete("token");
+    //  window.history.replaceState({}, "", u.toString());
+    //}
     currentEmployee = employee;
     bootApp();
   } else {
