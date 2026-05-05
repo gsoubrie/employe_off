@@ -1,317 +1,158 @@
 // ============================================================
 //  COMPOSANT CALENDRIER (calendar.js)
-//  Rendu du calendrier mensuel avec barres de couleur continues
+//  Rendu du calendrier mensuel avec affichage des congés
+//  Tient compte des périodes (Matin/Midi/Soir/Journée)
+//  pour ne pas afficher un badge sur un demi-jour absent.
 // ============================================================
-/* jshint esversion: 11 */
 
 class LeaveCalendar {
-    static _registry = new Map();
+  constructor(gridId, titleId, legendId) {
+    this.gridId   = gridId;
+    this.titleId  = titleId;
+    this.legendId = legendId;
+    this.current  = new Date();
+    this.leaves   = [];
+    this._dayHeaders = null;
+  }
 
-    constructor ( gridId, titleId, legendId ) {
-        this.gridId      = gridId;
-        this.titleId     = titleId;
-        this.legendId    = legendId;
-        this.current     = new Date();
-        this.leaves      = [];
-        this.activeFilter = null;
-        this._dayHeaders = null;
-        LeaveCalendar._registry.set( legendId, this );
-    }
-    
-    setLeaves ( leaves ) {
-        this.leaves = leaves.filter( ( l ) => l.status === "approved" );
-        this.render();
-    }
-    
-    prevMonth () {
-        this.current = new Date( this.current.getFullYear(), this.current.getMonth() - 1, 1 );
-        this.render();
-    }
-    
-    nextMonth () {
-        this.current = new Date( this.current.getFullYear(), this.current.getMonth() + 1, 1 );
-        this.render();
-    }
-    
-    goToday () {
-        this.current = new Date();
-        this.render();
-    }
-    
-    toggleFilter ( name ) {
-        this.activeFilter = this.activeFilter === name ? null : name;
-        this.render();
+  setLeaves(leaves) {
+    // On n'affiche que les congés approuvés
+    this.leaves = leaves.filter((l) => l.status === "approved");
+    this.render();
+  }
+
+  prevMonth() { this.current = new Date(this.current.getFullYear(), this.current.getMonth() - 1, 1); this.render(); }
+  nextMonth() { this.current = new Date(this.current.getFullYear(), this.current.getMonth() + 1, 1); this.render(); }
+  goToday()   { this.current = new Date(); this.render(); }
+
+  // ── Est-ce qu'un congé "couvre" vraiment un jour donné ? ──
+  // Un congé couvre un jour si :
+  //   - C'est un jour intermédiaire (ni début ni fin) → toujours oui
+  //   - C'est le jour de début → oui sauf si periodeDebut = "Midi" ou "Soir"
+  //     (l'employé est là le matin)
+  //   - C'est le jour de fin → oui sauf si periodeFin = "Matin"
+  //     (l'employé revient l'après-midi)
+  _coversDay(leave, dateStr) {
+    if (dateStr < leave.debut || dateStr > leave.fin) return false;
+
+    const pd = leave.periodeDebut || "Journée";
+    const pf = leave.periodeFin   || "Journée";
+
+    // Jour de début : absent seulement à partir de la période début
+    // Si periodeDebut = "Midi" ou "Soir", le matin il est là → on affiche quand même
+    // (on considère que le badge = "absent une partie du jour" → on affiche toujours)
+    // SAUF : si c'est le SEUL jour ET que la période couvre moins d'une demi-journée
+    // La vraie règle métier demandée : sur le jour de fin, si periodeFin = "Matin",
+    // le salarié revient l'après-midi → ne PAS afficher le badge ce jour-là.
+    if (dateStr === leave.fin && leave.fin !== leave.debut) {
+      if (pf === "Matin") return false; // revient l'après-midi
     }
 
-    render () {
-        const year  = this.current.getFullYear();
-        const month = this.current.getMonth();
-        const today = new Date();
-        
-        // Titre
-        const titleEl = document.getElementById( this.titleId );
-        if ( titleEl ) {
-            titleEl.textContent = new Date( year, month, 1 )
-            .toLocaleDateString( "fr-FR", { month: "long", year: "numeric" } )
-            .replace( /^\w/, ( c ) => c.toUpperCase() );
-        }
-        
-        // Grille
-        const grid = document.getElementById( this.gridId );
-        if ( !grid ) {
-            return;
-        }
-        
-        if ( !this._dayHeaders ) {
-            this._dayHeaders = Array.from( grid.querySelectorAll( ".cal-day-name" ) )
-                                    .map( ( el ) => el.cloneNode( true ) );
-        }
-        grid.innerHTML = "";
-        this._dayHeaders.forEach( ( h ) => grid.appendChild( h.cloneNode( true ) ) );
-        
-        // Calculs
-        let startDow = new Date( year, month, 1 ).getDay();
-        startDow     = startDow === 0 ? 6 : startDow - 1;
-        
-        const daysInMonth   = new Date( year, month + 1, 0 ).getDate();
-        const prevMonthDays = new Date( year, month, 0 ).getDate();
-        const totalCells    = Math.ceil( (startDow + daysInMonth) / 7 ) * 7;
-        
-        // Palette de couleurs par employé (stable via hash)
-        const PALETTE = [
-            { bg: "#DBEAFE", bar: "#3B82F6", text: "#1E3A8A" },
-            { bg: "#D1FAE5", bar: "#10B981", text: "#064E3B" },
-            { bg: "#FEF3C7", bar: "#F59E0B", text: "#78350F" },
-            { bg: "#FCE7F3", bar: "#EC4899", text: "#831843" },
-            { bg: "#EDE9FE", bar: "#8B5CF6", text: "#4C1D95" },
-            { bg: "#FFEDD5", bar: "#F97316", text: "#7C2D12" },
-            { bg: "#CFFAFE", bar: "#06B6D4", text: "#164E63" },
-            { bg: "#F0FDF4", bar: "#22C55E", text: "#14532D" },
-            { bg: "#FEE2E2", bar: "#EF4444", text: "#7F1D1D" },
-            { bg: "#F5F3FF", bar: "#7C3AED", text: "#2E1065" },
-            { bg: "#FDF2F8", bar: "#D946EF", text: "#701A75" },
-            { bg: "#ECFDF5", bar: "#059669", text: "#022C22" }
-        ];
-        
-        function employeeColor ( name ) {
-            let h = 0;
-            for ( const c of name ) {
-                h = (h * 31 + c.charCodeAt( 0 )) % 65536;
-            }
-            return PALETTE[ h % PALETTE.length ];
-        }
-        
-        // Légende des personnes présentes ce mois
-        const mStart = `${year}-${String( month + 1 ).padStart( 2, "0" )}-01`;
-        const mEnd   = `${year}-${String( month + 1 ).padStart( 2, "0" )}-${String( daysInMonth ).padStart( 2, "0" )}`;
-        
-        const presentLeaves = this.leaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart );
-        const namesSet      = new Set( presentLeaves.map( ( l ) => l.employeeName ) );
-        
-        const legendEl = document.getElementById( this.legendId );
-        if ( legendEl ) {
-            const legendId = this.legendId;
-            legendEl.innerHTML = [...namesSet].map( ( name ) => {
-                const col      = employeeColor( name );
-                const isActive = this.activeFilter === null || this.activeFilter === name;
-                const safeName = name.replace( /\\/g, "\\\\" ).replace( /'/g, "\\'" );
-                return `<div class="cal-legend-item${this.activeFilter === name ? " cal-legend-active" : ""}"
-                  style="cursor:pointer;opacity:${isActive ? 1 : 0.35};transition:opacity .15s"
-                  onclick="LeaveCalendar._registry.get('${legendId}').toggleFilter('${safeName}')">
-          <div class="cal-legend-dot" style="background:${col.bar}"></div>
+    // Sur le jour de début, si periodeDebut = "Soir", il est là toute la journée sauf fin
+    // → on affiche quand même (absent le soir)
+    // Pas de cas à exclure côté début selon la règle actuelle.
+
+    return true;
+  }
+
+  render() {
+    const year  = this.current.getFullYear();
+    const month = this.current.getMonth();
+    const today = new Date();
+
+    // Titre
+    const titleEl = document.getElementById(this.titleId);
+    if (titleEl) {
+      titleEl.textContent = new Date(year, month, 1)
+        .toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+        .replace(/^\w/, (c) => c.toUpperCase());
+    }
+
+    const grid = document.getElementById(this.gridId);
+    if (!grid) return;
+
+    // Sauvegarder les en-têtes
+    if (!this._dayHeaders) {
+      this._dayHeaders = Array.from(grid.querySelectorAll(".cal-day-name"))
+        .map((el) => el.cloneNode(true));
+    }
+    grid.innerHTML = "";
+    this._dayHeaders.forEach((h) => grid.appendChild(h.cloneNode(true)));
+
+    // Calculs
+    let startDow = new Date(year, month, 1).getDay();
+    startDow = startDow === 0 ? 6 : startDow - 1;
+
+    const daysInMonth   = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    const totalCells    = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+    // Légende : personnes présentes ce mois
+    const mStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const mEnd   = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+    const names  = new Set();
+    this.leaves.forEach((l) => {
+      if (l.debut <= mEnd && l.fin >= mStart) names.add(l.employeeName);
+    });
+
+    const legendEl = document.getElementById(this.legendId);
+    if (legendEl) {
+      legendEl.innerHTML = [...names].map((name) => {
+        const col = avatarColor(name);
+        return `<div class="cal-legend-item">
+          <div class="cal-legend-dot" style="background:${col.text}"></div>
           <span>${name}</span>
         </div>`;
-            } ).join( "" );
-        }
-        
-        // Attribution d'une ligne par congé pour éviter les chevauchements
-        // On calcule les "tracks" (lignes) pour l'affichage des barres
-        function assignTracks ( leaves ) {
-            const sorted = [...leaves].sort( ( a, b ) => a.debut.localeCompare( b.debut ) );
-            const tracks = []; // chaque track = tableau de congés non chevauchants
-            sorted.forEach( ( leave ) => {
-                let placed = false;
-                for ( const track of tracks ) {
-                    const last = track[ track.length - 1 ];
-                    if ( last.fin < leave.debut ) {
-                        track.push( leave );
-                        placed = true;
-                        break;
-                    }
-                }
-                if ( !placed ) {
-                    tracks.push( [leave] );
-                }
-            } );
-            // Retourne un Map leaveId -> trackIndex
-            const map = new Map();
-            tracks.forEach( ( track, i ) => track.forEach( ( l ) => map.set( l.id, i ) ) );
-            return map;
-        }
-        
-        const trackMap = assignTracks( this.leaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart ) );
-        
-        // Cellules
-        const cells = [];
-        for ( let i = 0; i < totalCells; i++ ) {
-            const cell     = document.createElement( "div" );
-            cell.className = "cal-cell";
-            
-            let d,
-                m2 = month,
-                y2 = year;
-            if ( i < startDow ) {
-                d  = prevMonthDays - startDow + i + 1;
-                m2 = month - 1;
-                cell.classList.add( "other-month" );
-            }
-            else if ( i >= startDow + daysInMonth ) {
-                d  = i - startDow - daysInMonth + 1;
-                m2 = month + 1;
-                cell.classList.add( "other-month" );
-            }
-            else {
-                d = i - startDow + 1;
-            }
-            
-            if ( m2 < 0 ) {
-                m2 = 11;
-                y2--;
-            }
-            if ( m2 > 11 ) {
-                m2 = 0;
-                y2++;
-            }
-            
-            const isToday = d === today.getDate() && m2 === today.getMonth() && y2 === today.getFullYear();
-            if ( isToday ) {
-                cell.classList.add( "today" );
-            }
-            
-            const dateStr = `${y2}-${String( m2 + 1 ).padStart( 2, "0" )}-${String( d ).padStart( 2, "0" )}`;
-
-            const ferieTag = isFerie( dateStr )
-                ? `<span class="cal-ferie-tag">Férié</span>`
-                : "";
-
-            cell.innerHTML    = `<div class="cal-num">${d}${ferieTag}</div>`;
-            cell.dataset.date = dateStr;
-
-            if ( isFerie( dateStr ) ) {
-                cell.classList.add( "cal-ferie" );
-            }
-            
-            cells.push( { cell, dateStr, colIndex: i % 7 } );
-            grid.appendChild( cell );
-        }
-        
-        // Rendu des barres de congé
-        // Pour chaque congé, on dessine une barre qui s'étend sur les cellules concernées
-        // En coupant les lignes à chaque début de semaine
-        const visibleLeaves = this.activeFilter
-            ? this.leaves.filter( ( l ) => l.employeeName === this.activeFilter )
-            : this.leaves;
-
-        visibleLeaves.filter( ( l ) => l.debut <= mEnd && l.fin >= mStart ).forEach( ( leave ) => {
-            const col    = employeeColor( leave.employeeName );
-            const track  = trackMap.get( leave.id ) ?? 0;
-            const prenom = leave.employeeName.split( " " )[ 0 ];
-            
-            // Trouver les cellules concernées dans le mois affiché
-            const concerned = cells.filter( ( c ) => c.dateStr >= leave.debut && c.dateStr <= leave.fin && !c.cell.classList.contains( "other-month" ) );
-            if ( !concerned.length ) {
-                return;
-            }
-            
-            // Grouper par semaine (ligne dans la grille)
-            const byWeek = new Map();
-            concerned.forEach( ( c ) => {
-                const weekIdx = Math.floor( cells.indexOf( c ) / 7 );
-                if ( !byWeek.has( weekIdx ) ) {
-                    byWeek.set( weekIdx, [] );
-                }
-                byWeek.get( weekIdx ).push( c );
-            } );
-            
-            byWeek.forEach( ( weekCells ) => {
-                const first     = weekCells[ 0 ];
-                const last      = weekCells[ weekCells.length - 1 ];
-                const isStart   = first.dateStr === leave.debut;
-                const isEnd     = last.dateStr === leave.fin;
-                const spanCount = weekCells.length;
-                
-                const BAR_HEIGHT = 18;
-                const BAR_GAP    = 2;
-                const BAR_TOP    = 22;
-                const top        = BAR_TOP + track * (BAR_HEIGHT + BAR_GAP);
-                
-                const bar     = document.createElement( "div" );
-                bar.className = "cal-leave-bar";
-                bar.title     = `${leave.employeeName} – ${leave.typeLabel}`;
-                
-                // ── Demi-journée : basé sur periodeDebut / periodeFin ──
-                const isMorningOnly   = leave.periodeDebut === "Matin"      && isStart && first === last;
-                const isAfternoonOnly = leave.periodeFin   === "Après-midi" && isEnd   && first === last;
-                
-                // Décalage gauche et largeur selon la demi-journée
-                let leftOffset,
-                    barWidth;
-                
-                if ( isAfternoonOnly ) {
-                    // Barre sur la moitié droite de la cellule
-                    leftOffset = `calc(50%)`;
-                    barWidth   = `calc(50% - 4px)`;
-                }
-                else if ( isMorningOnly ) {
-                    // Barre sur la moitié gauche de la cellule
-                    leftOffset = isStart ? "4px" : "0";
-                    barWidth   = `calc(50% - 4px)`;
-                }
-                else {
-                    // Comportement normal (journée entière ou barre multi-cellules)
-                    leftOffset = isStart ? "4px" : "0";
-                    barWidth   = `calc(${spanCount * 100}% + ${spanCount - 1}px - ${isStart ? "4px" : "0px"} - ${isEnd ? "4px" : "0px"})`;
-                }
-                
-                // Border-radius : arrondi à gauche si début, à droite si fin
-                const rrTL = (isStart && !isAfternoonOnly) ? "4px" : "0";
-                const rrTR = (isEnd && !isMorningOnly) ? "4px" : "0";
-                
-                bar.style.cssText = `
-    position: absolute;
-    top: ${top}px;
-    left: ${leftOffset};
-    width: ${barWidth};
-    height: ${BAR_HEIGHT}px;
-    background: ${col.bar};
-    color: #fff;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: ${BAR_HEIGHT}px;
-    padding: 0 6px;
-    border-radius: ${rrTL} ${rrTR} ${rrTR} ${rrTL};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    z-index: 2;
-    cursor: default;
-    box-sizing: border-box;
-  `;
-                
-                // Afficher le prénom uniquement sur le 1er segment visible
-                bar.textContent = (first.dateStr === leave.debut || first.colIndex === 0) ? prenom : "";
-                
-                first.cell.style.position = "relative";
-                first.cell.style.overflow = "visible";
-                first.cell.appendChild( bar );
-            } );
-        } );
-        
-        // Assurer que les cellules ont assez de hauteur pour les barres
-        const maxTracks = Math.max( 0, ...Array.from( trackMap.values() ) ) + 1;
-        const minHeight = 22 + maxTracks * 20 + 6;
-        grid.querySelectorAll( ".cal-cell:not(.cal-day-name)" ).forEach( ( c ) => {
-            c.style.minHeight = `${Math.max( minHeight, 60 )}px`;
-        } );
+      }).join("");
     }
+
+    // Cellules
+    for (let i = 0; i < totalCells; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cal-cell";
+
+      let d, m2 = month, y2 = year;
+      if (i < startDow) {
+        d = prevMonthDays - startDow + i + 1; m2 = month - 1;
+        cell.classList.add("other-month");
+      } else if (i >= startDow + daysInMonth) {
+        d = i - startDow - daysInMonth + 1; m2 = month + 1;
+        cell.classList.add("other-month");
+      } else {
+        d = i - startDow + 1;
+      }
+
+      if (m2 < 0)  { m2 = 11; y2--; }
+      if (m2 > 11) { m2 = 0;  y2++; }
+
+      const isToday = d === today.getDate() && m2 === today.getMonth() && y2 === today.getFullYear();
+      if (isToday) cell.classList.add("today");
+
+      const dateStr = `${y2}-${String(m2 + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cell.innerHTML = `<div class="cal-num">${d}</div>`;
+
+      // Congés couvrant ce jour (avec gestion des périodes)
+      const onDay = this.leaves.filter((l) => this._coversDay(l, dateStr));
+
+      onDay.slice(0, 2).forEach((l) => {
+        const col = avatarColor(l.employeeName);
+        const b = document.createElement("div");
+        b.className = "cal-badge";
+        b.style.cssText = `background:${col.bg};color:${col.text}`;
+        b.title = `${l.employeeName} – ${l.typeLabel}`;
+        b.textContent = l.employeeName.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+        cell.appendChild(b);
+      });
+
+      if (onDay.length > 2) {
+        const more = document.createElement("div");
+        more.className = "cal-badge";
+        more.style.cssText = "background:var(--bg2);color:var(--text2)";
+        more.textContent = `+${onDay.length - 2}`;
+        cell.appendChild(more);
+      }
+
+      grid.appendChild(cell);
+    }
+  }
 }
