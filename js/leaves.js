@@ -223,11 +223,10 @@ ${leave.employeeName} a soumis une demande de ${leave.typeLabel} :
   • Au    : ${formatDate( leave.fin )} (${leave.periodeFin})
   • Durée : ${nb} jour${nb > 1 ? "s" : ""}
 ${leave.note ? `  • Note  : ${leave.note}\n` : ""}
-Pour valider ou refuser cette demande :
-${window.location.origin}${window.location.pathname.replace( /[^/]*$/, "" )}manager.html
+Calendrier :
+${window.location.origin}${window.location.pathname.replace( /[^/]*$/, "" )}
 
-Cordialement,
-L'application Congés Équipe`
+Cordialement`
     );
     
     window.open( `mailto:${toEmail}?cc=${ccEmails}&subject=${subject}&body=${body}` );
